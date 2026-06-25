@@ -71,6 +71,38 @@ npm run dev
 ```
 Open `http://localhost:3000` to interact with CampusFlow.
 
+### 4. n8n Automation Workflows Setup
+The application relies on n8n webhooks to automate WhatsApp alerts (via Twilio) and Google Calendar event scheduling. Create workflows in n8n listening to `POST` requests for the following endpoints configured in your `.env` file:
+
+*   **Deadline Reminder Webhook** (`N8N_DEADLINE_WEBHOOK`)
+    *   **Trigger**: Triggered when a new task is added with calendar integration enabled.
+    *   **Payload**: `{ studentName, phone, subject, taskTitle, deadline, reminderTime }`
+    *   **Action**: Creates a Google Calendar event for `deadline` and schedules a Twilio node to send a WhatsApp reminder to `phone` at `reminderTime`.
+*   **Notice Broadcast Webhook** (`N8N_NOTICE_WEBHOOK`)
+    *   **Trigger**: Triggered when college notices are uploaded and analyzed by AI.
+    *   **Payload**: `{ noticeText, aiSummary, eventTitle, eventDate, phoneList }`
+    *   **Action**: Iterates over `phoneList` to broadcast the AI-summarized notice via Twilio WhatsApp, and optionally creates a calendar event if `eventDate` is provided.
+*   **Quiz Ready Webhook** (`N8N_QUIZ_WEBHOOK`)
+    *   **Trigger**: Triggered when AI-generated quiz questions are prepared.
+    *   **Payload**: `{ studentName, phone, subject, topic, mcqCount }`
+    *   **Action**: Sends a Twilio WhatsApp message notifying the student that a quiz on `topic` is ready.
+*   **Study Planner Webhook** (`N8N_STUDY_REMINDER_WEBHOOK`)
+    *   **Trigger**: Triggered when a study plan is generated.
+    *   **Payload**: `{ studentName, phone, subject, deadline, studyPlan }`
+    *   **Action**: Creates Google Calendar events for the scheduled study sessions and sends a WhatsApp breakdown notification.
+*   **Attendance Alert Webhook** (`N8N_ATTENDANCE_ALERT_WEBHOOK`)
+    *   **Trigger**: Triggered when attendance drops below the 75% threshold.
+    *   **Payload**: `{ studentName, phone, subject, currentAttendance, riskLevel }`
+    *   **Action**: Sends an urgent warning to the student's WhatsApp.
+*   **Placement Prep Webhook** (`N8N_PLACEMENT_WEBHOOK`)
+    *   **Trigger**: Triggered when a mock interview or company tracking status is added.
+    *   **Payload**: `{ studentName, phone, companyName, role, interviewDate, roundName }`
+    *   **Action**: Syncs the interview date to Google Calendar and triggers a WhatsApp prep prompt.
+*   **Study Group Webhook** (`N8N_STUDY_GROUP_WEBHOOK`)
+    *   **Trigger**: Triggered when a study group is matched or created.
+    *   **Payload**: `{ creatorName, membersList, subject, groupTitle, scheduledAt }`
+    *   **Action**: Sends WhatsApp invites to all matched classmates in `membersList`.
+
 ---
 
 ## API Endpoints
