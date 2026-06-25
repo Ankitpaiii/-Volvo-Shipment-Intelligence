@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="CampusFlow — The ultimate student productivity platform powered by AI, WhatsApp automation, and Google Calendar integration." />
+    <meta name="theme-color" content="#0A0E1A" />
+    <title>CampusFlow — AI-Powered Student Productivity</title>
+    <!-- Google Fonts: Inter for premium SaaS typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Critical: Apply dark mode before render to prevent FOUC -->
+    <script>
+      (function() {
+        var saved = localStorage.getItem('campusflow-theme');
+        // Default to dark unless explicitly saved as light
+        if (saved !== 'light') {
+          document.documentElement.classList.add('dark');
+          if (!saved) localStorage.setItem('campusflow-theme', 'dark');
+        }
+      })();
+    </script>
+    <style>
+      /* Prevent flash of white content */
+      html { background-color: #0A0E1A; }
+      html:not(.dark) { background-color: #F1F5F9; }
+      body { font-family: 'Inter', system-ui, sans-serif; margin: 0; }
+    </style>
+  </head>
+  <body class="min-h-screen antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
