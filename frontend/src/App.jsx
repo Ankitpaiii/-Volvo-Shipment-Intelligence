@@ -13,6 +13,14 @@ import { Toaster } from 'react-hot-toast';
 
 import { AnimatePresence } from 'framer-motion';
 import PageTransition from './components/layout/PageTransition';
+import { useAuth } from './context/AuthContext';
+
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+};
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -24,11 +32,11 @@ function AnimatedRoutes() {
         <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />
         <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
         <Route path="/onboarding" element={<PageTransition><OnboardingPage /></PageTransition>} />
-        <Route path="/dashboard" element={<PageTransition><DashboardPage /></PageTransition>} />
-        <Route path="/academics" element={<PageTransition><AcademicsPage /></PageTransition>} />
-        <Route path="/career" element={<PageTransition><CareerPage /></PageTransition>} />
-        <Route path="/copilot" element={<PageTransition><CopilotPage /></PageTransition>} />
-        <Route path="/automations" element={<PageTransition><AutomationsPage /></PageTransition>} />
+        <Route path="/dashboard" element={<ProtectedRoute><PageTransition><DashboardPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/academics" element={<ProtectedRoute><PageTransition><AcademicsPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/career" element={<ProtectedRoute><PageTransition><CareerPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/copilot" element={<ProtectedRoute><PageTransition><CopilotPage /></PageTransition></ProtectedRoute>} />
+        <Route path="/automations" element={<ProtectedRoute><PageTransition><AutomationsPage /></PageTransition></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AnimatePresence>
