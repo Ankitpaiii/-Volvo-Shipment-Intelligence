@@ -8,12 +8,39 @@ import {
   MoreVertical, RefreshCw, Sparkles, SearchCode, X
 } from 'lucide-react';
 import api from '../api/axios';
+import toast from 'react-hot-toast';
 
 const tabs = ['Tasks', 'Study', 'Attendance', 'Knowledge', 'Groups'];
 
-const TasksTab = ({ tasks }) => {
+const TasksTab = ({ tasks, onTaskAdded }) => {
   const todoTasks = tasks.filter(t => t.status === 'pending');
   const doneTasks = tasks.filter(t => t.status === 'done');
+
+  const handleAddTask = async () => {
+    const title = prompt('Enter task name (e.g., Complete UI):');
+    if (!title) return;
+    const subject = prompt('Enter subject name:');
+    if (!subject) return;
+    
+    // Add 2 days for deadline
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + 2);
+    
+    const promise = api.post('/api/tasks', {
+      title,
+      subject,
+      deadline: deadline.toISOString(),
+      add_to_calendar: true
+    }).then(() => {
+      if (onTaskAdded) onTaskAdded();
+    });
+    
+    toast.promise(promise, {
+      loading: 'Adding task and triggering n8n...',
+      success: 'Task added! n8n workflow triggered 🚀',
+      error: 'Failed to add task'
+    });
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
@@ -46,7 +73,7 @@ const TasksTab = ({ tasks }) => {
             ))}
             
             {i === 0 && (
-              <button className="w-full py-3 rounded-xl border border-dashed border-borderColor text-textSecondary text-sm font-medium hover:border-accentPrimary hover:text-accentPrimary transition-colors flex items-center justify-center gap-2">
+              <button onClick={handleAddTask} className="w-full py-3 rounded-xl border border-dashed border-borderColor text-textSecondary text-sm font-medium hover:border-accentPrimary hover:text-accentPrimary transition-colors flex items-center justify-center gap-2">
                 <Plus size={16} /> Add Task
               </button>
             )}
@@ -247,15 +274,16 @@ export default function AcademicsPage() {
   const [activeTab, setActiveTab] = useState('Tasks');
   const [tasks, setTasks] = useState([]);
 
+  const fetchTasks = async () => {
+    try {
+      const response = await api.get('/api/tasks');
+      setTasks(response.data.tasks || []);
+    } catch (err) {
+      console.error('Failed to fetch tasks', err);
+    }
+  };
+
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const response = await api.get('/api/tasks');
-        setTasks(response.data.tasks || []);
-      } catch (err) {
-        console.error('Failed to fetch tasks', err);
-      }
-    };
     fetchTasks();
   }, []);
 
@@ -301,7 +329,7 @@ export default function AcademicsPage() {
             transition={{ duration: 0.3, type: "spring", bounce: 0 }}
             className="w-full"
           >
-            {activeTab === 'Tasks' && <TasksTab tasks={tasks} />}
+            {activeTab === 'Tasks' && <TasksTab tasks={tasks} onTaskAdded={fetchTasks} />}
             {activeTab === 'Study' && <StudyTab />}
             {activeTab === 'Attendance' && <AttendanceTab />}
             {activeTab === 'Knowledge' && <KnowledgeTab />}
