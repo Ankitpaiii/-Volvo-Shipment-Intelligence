@@ -132,8 +132,6 @@ async def answer_question(
         return _fallback_answer(db, question)
 
     try:
-        import anthropic
-
         context = _build_shipment_context(db)
 
         # Maintain conversation history (last 6 turns)
@@ -141,27 +139,66 @@ async def answer_question(
             _conversation_history[session_id] = []
         history = _conversation_history[session_id]
 
-        # Build messages list for Claude
-        messages = []
-        for turn in history[-6:]:
-            messages.append({"role": turn["role"], "content": turn["content"]})
-        messages.append({"role": "user", "content": f"Current shipment data:\n{context}\n\nQuestion: {question}"})
+        if api_key.startswith("nvapi-"):
+            from openai import OpenAI
 
-        client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model="claude-3-5-haiku-20241022",
-            max_tokens=1024,
-            system=(
-                "You are an expert Volvo Supply Chain Operations copilot. "
-                "Answer questions using ONLY the provided shipment data. "
-                "Be concise, actionable, and use bullet points where helpful. "
-                "Use **bold** for key numbers and shipment IDs. "
-                "Prioritize JIT/JIS critical shipments in your analysis. "
-                "If data is insufficient to answer, say so clearly."
-            ),
-            messages=messages,
-        )
-        answer = response.content[0].text
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an expert Volvo Supply Chain Operations copilot. "
+                        "Answer questions using ONLY the provided shipment data. "
+                        "Be concise, actionable, and use bullet points where helpful. "
+                        "Use **bold** for key numbers and shipment IDs. "
+                        "Prioritize JIT/JIS critical shipments in your analysis. "
+                        "If data is insufficient to answer, say so clearly."
+                    )
+                }
+            ]
+            for turn in history[-6:]:
+                messages.append({"role": turn["role"], "content": turn["content"]})
+            messages.append({"role": "user", "content": f"Current shipment data:\n{context}\n\nQuestion: {question}"})
+
+            client = OpenAI(
+                base_url="https://integrate.api.nvidia.com/v1",
+                api_key=api_key
+            )
+
+            completion = client.chat.completions.create(
+                model="nvidia/nemotron-3-ultra-550b-a55b",
+                messages=messages,
+                temperature=1,
+                top_p=0.95,
+                max_tokens=4096,
+                extra_body={"chat_template_kwargs": {"enable_thinking": True}, "reasoning_budget": 4096}
+            )
+            answer = completion.choices[0].message.content
+            model_name = "nvidia-nemotron"
+        else:
+            import anthropic
+
+            # Build messages list for Claude
+            messages = []
+            for turn in history[-6:]:
+                messages.append({"role": turn["role"], "content": turn["content"]})
+            messages.append({"role": "user", "content": f"Current shipment data:\n{context}\n\nQuestion: {question}"})
+
+            client = anthropic.Anthropic(api_key=api_key)
+            response = client.messages.create(
+                model="claude-3-5-haiku-20241022",
+                max_tokens=1024,
+                system=(
+                    "You are an expert Volvo Supply Chain Operations copilot. "
+                    "Answer questions using ONLY the provided shipment data. "
+                    "Be concise, actionable, and use bullet points where helpful. "
+                    "Use **bold** for key numbers and shipment IDs. "
+                    "Prioritize JIT/JIS critical shipments in your analysis. "
+                    "If data is insufficient to answer, say so clearly."
+                ),
+                messages=messages,
+            )
+            answer = response.content[0].text
+            model_name = "claude-haiku"
 
         # Update history
         _conversation_history[session_id].append({"role": "user", "content": question})
@@ -170,9 +207,10 @@ async def answer_question(
         if len(_conversation_history[session_id]) > 12:
             _conversation_history[session_id] = _conversation_history[session_id][-12:]
 
-        return answer, ["shipments_db", "exceptions_db", "claude-haiku"]
+        return answer, ["shipments_db", "exceptions_db", model_name]
     except Exception as exc:
         # Log the error but fall back gracefully
         import logging
         logging.getLogger(__name__).warning("Copilot API error: %s", exc)
         return _fallback_answer(db, question)
+
