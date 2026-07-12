@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Volvo_logo1.svg/320px-Volvo_logo1.svg.png" alt="Volvo Logo" width="100"/>
   <h1>Volvo Shipment Intelligence Platform</h1>
   <p><strong>A Next-Generation Freight Tracking & Proactive Exception Management System</strong></p>
 </div>
