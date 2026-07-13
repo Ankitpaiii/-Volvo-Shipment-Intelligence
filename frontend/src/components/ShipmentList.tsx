@@ -1,18 +1,13 @@
 import { useState } from "react";
 import type { Shipment } from "../api/client";
 
-function riskColor(score: number) {
-  if (score >= 70) return { text: "text-red-400", bg: "bg-red-500/15", border: "border-red-500/30" };
-  if (score >= 40) return { text: "text-amber-400", bg: "bg-amber-500/15", border: "border-amber-500/30" };
-  return { text: "text-emerald-400", bg: "bg-emerald-500/15", border: "border-emerald-500/30" };
+function riskColor(score: number): string {
+  if (score >= 70) return "var(--signal-red)";
+  if (score >= 40) return "var(--signal-amber)";
+  return "var(--signal-green)";
 }
 
-function criticalityBadge(c: string) {
-  if (c === "JIT") return "bg-sky-500/20 text-sky-300 border border-sky-500/30";
-  if (c === "JIS") return "bg-violet-500/20 text-violet-300 border border-violet-500/30";
-  if (c === "LOW") return "bg-slate-600/30 text-slate-400 border border-slate-600/30";
-  return "";
-}
+const STATUS_FILTERS = ["ALL", "IN_TRANSIT", "AT_RISK", "DELAYED", "DELIVERED", "PLANNED"] as const;
 
 interface Props {
   shipments: Shipment[];
@@ -20,13 +15,11 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-const STATUS_FILTERS = ["ALL", "IN_TRANSIT", "AT_RISK", "DELAYED", "DELIVERED", "PLANNED"] as const;
-
 export function ShipmentList({ shipments, selectedId, onSelect }: Props) {
-  const [search, setSearch] = useState("");
+  const [search, setSearch]             = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [critFilter, setCritFilter] = useState<string>("ALL");
-  const [sort, setSort] = useState<"risk" | "eta">("risk");
+  const [critFilter, setCritFilter]     = useState<string>("ALL");
+  const [sort, setSort]                 = useState<"risk" | "eta">("risk");
 
   const filtered = shipments
     .filter((s) => {
@@ -43,75 +36,70 @@ export function ShipmentList({ shipments, selectedId, onSelect }: Props) {
       }
       return true;
     })
-    .sort((a, b) => {
-      if (sort === "eta") return new Date(a.planned_delivery).getTime() - new Date(b.planned_delivery).getTime();
-      return b.delay_risk_score - a.delay_risk_score;
-    });
+    .sort((a, b) => sort === "eta"
+      ? new Date(a.planned_delivery).getTime() - new Date(b.planned_delivery).getTime()
+      : b.delay_risk_score - a.delay_risk_score
+    );
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-slate-700/60 glass" style={{ maxHeight: 880 }}>
+    <div className="v-card" style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Header */}
-      <div className="border-b border-slate-700/60 px-4 py-3">
-        <div className="flex items-center justify-between">
+      <div className="v-card-header">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <div>
-            <h2 className="font-semibold text-slate-100">Live Shipments</h2>
-            <p className="text-xs text-slate-500">{filtered.length} of {shipments.length} shown</p>
+            <p className="v-text-primary" style={{ fontSize: "0.8rem", fontWeight: 700, margin: 0 }}>Live Shipments</p>
+            <p className="v-text-secondary" style={{ fontSize: "0.65rem", marginTop: 2 }}>
+              {filtered.length} of {shipments.length} shown
+            </p>
           </div>
-          <div className="flex gap-1.5 text-xs">
-            <button
-              onClick={() => setSort("risk")}
-              className={`px-2 py-1 rounded transition ${sort === "risk" ? "bg-sky-600/30 text-sky-300" : "text-slate-500 hover:text-slate-300"}`}
-            >
-              By Risk
-            </button>
-            <button
-              onClick={() => setSort("eta")}
-              className={`px-2 py-1 rounded transition ${sort === "eta" ? "bg-sky-600/30 text-sky-300" : "text-slate-500 hover:text-slate-300"}`}
-            >
-              By ETA
-            </button>
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["risk", "eta"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSort(s)}
+                className={`v-filter-pill${sort === s ? " active" : ""}`}
+              >
+                {s === "risk" ? "By Risk" : "By ETA"}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Search */}
-        <div className="relative mt-2">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <div style={{ position: "relative" }}>
+          <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }}
+            width="12" height="12" viewBox="0 0 24 24" fill="none"
+            stroke="var(--silver-500)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input
+            className="v-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search PO, supplier, carrier…"
-            className="w-full rounded-lg border border-slate-700 bg-slate-900/60 py-1.5 pl-8 pr-3 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-sky-500/60 transition"
           />
         </div>
 
-        {/* Status filter pills */}
-        <div className="mt-2 flex flex-wrap gap-1">
+        {/* Status pills */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
           {STATUS_FILTERS.map((f) => (
             <button
               key={f}
               onClick={() => setStatusFilter(f)}
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide transition ${
-                statusFilter === f
-                  ? "bg-sky-600/40 text-sky-300 border border-sky-500/40"
-                  : "text-slate-500 border border-slate-700 hover:text-slate-300"
-              }`}
+              className={`v-filter-pill${statusFilter === f ? " active" : ""}`}
             >
               {f === "ALL" ? "All" : f.replace("_", " ")}
             </button>
           ))}
         </div>
 
-        {/* Criticality filter */}
-        <div className="mt-1.5 flex gap-1">
+        {/* Criticality pills */}
+        <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
           {["ALL", "JIT", "JIS", "STANDARD"].map((c) => (
             <button
               key={c}
               onClick={() => setCritFilter(c)}
-              className={`rounded px-2 py-0.5 text-[10px] font-medium transition ${
-                critFilter === c ? "bg-violet-600/30 text-violet-300" : "text-slate-600 hover:text-slate-400"
-              }`}
+              className={`v-filter-pill${critFilter === c ? " active" : ""}`}
             >
               {c}
             </button>
@@ -119,55 +107,72 @@ export function ShipmentList({ shipments, selectedId, onSelect }: Props) {
         </div>
       </div>
 
-      {/* Shipment list */}
-      <div className="overflow-y-auto flex-1">
-        {filtered.length === 0 && (
-          <div className="p-8 text-center text-slate-600 text-sm">No shipments match filters</div>
-        )}
-        {filtered.map((s) => {
-          const { text, bg, border } = riskColor(s.delay_risk_score);
-          const isSelected = s.shipment_id === selectedId;
-          return (
-            <button
-              key={s.shipment_id}
-              onClick={() => onSelect(s.shipment_id)}
-              className={`w-full border-b border-slate-800/60 px-4 py-3 text-left transition-all duration-200 glass-hover ${
-                isSelected ? "bg-sky-900/20 border-l-2 border-l-sky-500" : ""
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-semibold text-slate-100 text-sm truncate">{s.po_number}</p>
-                    {s.part_criticality !== "STANDARD" && s.part_criticality !== "LOW" && (
-                      <span className={`status-badge ${criticalityBadge(s.part_criticality)}`}>
-                        {s.part_criticality}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400 truncate mt-0.5">{s.origin_city} → {s.dest_city}</p>
-                  <p className="text-xs text-slate-600 mt-0.5 truncate">{s.carrier_name}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className={`rounded-full border px-2 py-0.5 text-xs font-bold ${text} ${bg} ${border}`}>
-                    {s.delay_risk_score}%
-                  </span>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wide">{s.status.replace("_", " ")}</span>
-                </div>
-              </div>
+      {/* List */}
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        {filtered.length === 0 ? (
+          <div className="v-empty-state">
+            <svg className="v-empty-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+            <p className="v-empty-title">No Shipments Found</p>
+            <p className="v-empty-sub">Try resetting active filters or clearing your search query.</p>
+          </div>
+        ) : (
+          filtered.map((s) => {
+            const color = riskColor(s.delay_risk_score);
+            const isSelected = s.shipment_id === selectedId;
 
-              {/* Risk bar */}
-              <div className="mt-2 h-0.5 w-full overflow-hidden rounded-full bg-slate-800">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    s.delay_risk_score >= 70 ? "bg-red-500" : s.delay_risk_score >= 40 ? "bg-amber-500" : "bg-emerald-500"
-                  }`}
-                  style={{ width: `${s.delay_risk_score}%` }}
-                />
-              </div>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={s.shipment_id}
+                onClick={() => onSelect(s.shipment_id)}
+                style={{
+                  width: "100%",
+                  display: "block",
+                  textAlign: "left",
+                  padding: "12px 14px",
+                  borderBottom: "1px solid var(--graphite-line)",
+                  cursor: "pointer",
+                  backgroundColor: isSelected ? "var(--bg-panel-raised)" : "transparent",
+                  borderLeft: isSelected ? `3px solid ${color}` : "3px solid transparent",
+                  transition: "background-color 0.15s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span className="v-text-primary" style={{ fontSize: "0.8rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {s.po_number}
+                      </span>
+                      {s.part_criticality !== "STANDARD" && s.part_criticality !== "LOW" && (
+                        <span className="v-badge v-badge-amber">{s.part_criticality}</span>
+                      )}
+                    </div>
+                    <p className="v-text-secondary" style={{ fontSize: "0.68rem", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {s.origin_city} → {s.dest_city}
+                    </p>
+                    <p style={{ fontSize: "0.62rem", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--silver-500)" }}>
+                      {s.carrier_name}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                    <span className="v-badge" style={{ color, borderColor: color, fontSize: "0.65rem", fontWeight: 700 }}>
+                      {s.delay_risk_score}%
+                    </span>
+                    <span style={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--silver-500)" }}>
+                      {s.status.replace("_", " ")}
+                    </span>
+                  </div>
+                </div>
+                {/* Risk bar */}
+                <div className="v-progress-track" style={{ marginTop: 8 }}>
+                  <div className="v-progress-fill" style={{ width: `${s.delay_risk_score}%`, backgroundColor: color }} />
+                </div>
+              </button>
+            );
+          })
+        )}
       </div>
     </div>
   );

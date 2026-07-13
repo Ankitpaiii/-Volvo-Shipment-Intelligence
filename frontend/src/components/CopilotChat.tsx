@@ -2,241 +2,192 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 
 interface Message {
-  id: string;
   role: "user" | "assistant";
   content: string;
-  sources?: string[];
-  timestamp: Date;
 }
 
-const SUGGESTED_QUERIES = [
-  "Which shipments to Gothenburg are at risk this week?",
-  "Which shipments are at risk today?",
-  "Show me open exceptions ranked by impact",
-  "Which JIT/JIS critical shipments need attention?",
-  "How is DHL Freight performing?",
-  "What are the top risk factors right now?",
+const SUGGESTIONS = [
+  "What shipments are at risk today?",
+  "Which carrier has the worst OTIF?",
+  "Show JIT parts delayed over 2 hours",
+  "What is the average dwell time this week?",
 ];
-
-function MarkdownText({ text }: { text: string }) {
-  // Simple markdown: **bold**, bullet lists
-  const lines = text.split("\n");
-  return (
-    <div className="space-y-1">
-      {lines.map((line, i) => {
-        if (line.startsWith("• ") || line.startsWith("- ")) {
-          return (
-            <div key={i} className="flex gap-2">
-              <span className="text-sky-400 shrink-0">•</span>
-              <span dangerouslySetInnerHTML={{ __html: line.replace(/^[•\-] /, "").replace(/\*\*(.*?)\*\*/g, "<strong class='text-white'>$1</strong>") }} />
-            </div>
-          );
-        }
-        if (line.startsWith("**") && line.endsWith("**")) {
-          return <p key={i} className="font-bold text-white" dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, "$1") }} />;
-        }
-        return (
-          <p key={i} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, "<strong class='text-white'>$1</strong>") }} />
-        );
-      })}
-    </div>
-  );
-}
 
 export function CopilotChat() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sessionId] = useState(() => `session_${Date.now()}`);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [input, setInput]       = useState("");
+  const [loading, setLoading]   = useState(false);
+  const bottomRef               = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, loading]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-  const ask = async (question: string) => {
-    if (!question.trim() || loading) return;
-    setInput("");
-
-    const userMsg: Message = {
-      id: `u${Date.now()}`,
-      role: "user",
-      content: question.trim(),
-      timestamp: new Date(),
-    };
+  const send = async (text?: string) => {
+    const query = (text ?? input).trim();
+    if (!query || loading) return;
+    const userMsg: Message = { role: "user", content: query };
     setMessages((prev) => [...prev, userMsg]);
+    setInput("");
     setLoading(true);
 
     try {
-      const res = await api.copilotChat(question.trim(), sessionId);
-      const assistantMsg: Message = {
-        id: `a${Date.now()}`,
+      const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
+      const res = await api.chat(history);
+      setMessages((prev) => [...prev, { role: "assistant", content: res.response }]);
+    } catch {
+      setMessages((prev) => [...prev, {
         role: "assistant",
-        content: res.answer,
-        sources: res.sources,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-    } catch (e) {
-      const errorMsg: Message = {
-        id: `e${Date.now()}`,
-        role: "assistant",
-        content: e instanceof Error ? e.message : "Failed to get response. Please try again.",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
+        content: "Unable to connect to the Bandhu AI engine. Please verify the backend is running.",
+      }]);
     } finally {
       setLoading(false);
-      inputRef.current?.focus();
     }
   };
 
-  const clearHistory = () => setMessages([]);
+  const isEmpty = messages.length === 0;
 
   return (
-    <div className="glass rounded-xl border border-slate-700/60 flex flex-col" style={{ height: 520 }}>
-      {/* Header */}
-      <div className="border-b border-slate-700/60 px-4 py-3 flex items-center justify-between shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-base">🤖</span>
-            <h2 className="font-semibold text-slate-100">AI Copilot</h2>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30 font-medium">
-              Claude
-            </span>
-          </div>
-          <p className="text-xs text-slate-500">Natural-language shipment intelligence</p>
-        </div>
-        {messages.length > 0 && (
-          <button
-            onClick={clearHistory}
-            className="text-xs text-slate-600 hover:text-slate-400 transition"
-          >
-            Clear
-          </button>
-        )}
-      </div>
-
-      {/* Suggested queries (only when no messages) */}
-      {messages.length === 0 && (
-        <div className="px-4 py-3 shrink-0">
-          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-2">Try asking</p>
-          <div className="flex flex-wrap gap-1.5">
-            {SUGGESTED_QUERIES.slice(0, 4).map((q) => (
-              <button
-                key={q}
-                onClick={() => ask(q)}
-                className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400 hover:border-sky-500/60 hover:text-sky-300 transition"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-4 min-h-0">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex gap-2.5 animate-fade-slide ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
-          >
-            <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs shrink-0 ${
-              msg.role === "user" ? "bg-sky-600/30 text-sky-300" : "bg-slate-700 text-slate-300"
-            }`}>
-              {msg.role === "user" ? "U" : "🤖"}
+    <div className="v-card" style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      {/* Chat window */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+        {isEmpty ? (
+          <>
+            <div className="v-empty-state" style={{ paddingTop: 60 }}>
+              <svg className="v-empty-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <p className="v-empty-title">Ask Bandhu AI</p>
+              <p className="v-empty-sub">Ask anything about your supply chain — shipments, exceptions, carriers.</p>
             </div>
-            <div className={`max-w-[85%] space-y-1 ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
-              <div
-                className={`rounded-xl px-3 py-2 text-xs leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-sky-600/25 border border-sky-500/30 text-sky-100"
-                    : "glass border border-slate-700/60 text-slate-300"
-                }`}
-              >
-                {msg.role === "assistant" ? (
-                  <MarkdownText text={msg.content} />
-                ) : (
-                  msg.content
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] text-slate-700">
-                  {msg.timestamp.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                </span>
-                {msg.sources && msg.sources.length > 0 && (
-                  <span className="text-[9px] text-slate-700">· {msg.sources.join(", ")}</span>
-                )}
-              </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  style={{
+                    textAlign: "left",
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid var(--graphite-line)",
+                    backgroundColor: "var(--bg-panel)",
+                    cursor: "pointer",
+                    transition: "border-color 0.15s ease, background-color 0.15s ease",
+                    color: "var(--silver-700)",
+                    fontSize: "0.75rem",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--silver-500)";
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--bg-panel-raised)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--graphite-line)";
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--bg-panel)";
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
-          </div>
-        ))}
+          </>
+        ) : messages.map((m, i) => {
+          const isUser = m.role === "user";
+          return (
+            <div key={i} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", gap: 8 }} className="v-animate">
+              {!isUser && (
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                  background: "linear-gradient(145deg, #4A4C52, #0F1012)",
+                  border: "1px solid var(--graphite-line)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--silver-700)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
+              )}
+              <div style={{
+                maxWidth: "78%",
+                padding: "10px 14px",
+                borderRadius: isUser ? "12px 12px 2px 12px" : "2px 12px 12px 12px",
+                fontSize: "0.78rem",
+                lineHeight: 1.55,
+                backgroundColor: isUser ? "var(--chrome-highlight)" : "var(--bg-panel)",
+                color: isUser ? "var(--bg-void)" : "var(--platinum-100)",
+                border: isUser ? "none" : "1px solid var(--graphite-line)",
+                fontWeight: isUser ? 600 : 400,
+              }}>
+                {m.content}
+              </div>
+              {isUser && (
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                  backgroundColor: "var(--bg-panel-raised)",
+                  border: "1px solid var(--graphite-line)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--silver-500)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
-        {/* Typing indicator */}
         {loading && (
-          <div className="flex gap-2.5 animate-fade-slide">
-            <div className="h-7 w-7 rounded-full bg-slate-700 flex items-center justify-center text-xs shrink-0">🤖</div>
-            <div className="glass border border-slate-700/60 rounded-xl px-4 py-3 flex items-center gap-1">
-              <span className="typing-dot" />
-              <span className="typing-dot" />
-              <span className="typing-dot" />
+          <div style={{ display: "flex", gap: 8 }} className="v-animate">
+            <div style={{
+              width: 28, height: 28, borderRadius: "50%",
+              background: "linear-gradient(145deg, #4A4C52, #0F1012)",
+              border: "1px solid var(--graphite-line)",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--silver-700)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <div style={{
+              padding: "12px 16px",
+              borderRadius: "2px 12px 12px 12px",
+              backgroundColor: "var(--bg-panel)",
+              border: "1px solid var(--graphite-line)",
+              display: "flex", gap: 5, alignItems: "center",
+            }}>
+              <span className="v-dot" /><span className="v-dot" /><span className="v-dot" />
             </div>
           </div>
         )}
+        <div ref={bottomRef} />
       </div>
 
-      {/* Rotating suggestions when in chat */}
-      {messages.length > 0 && !loading && (
-        <div className="px-4 pb-2 shrink-0">
-          <div className="flex gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
-            {SUGGESTED_QUERIES.slice(0, 3).map((q) => (
-              <button
-                key={q}
-                onClick={() => ask(q)}
-                className="shrink-0 rounded-full border border-slate-700 px-2.5 py-1 text-[10px] text-slate-500 hover:border-sky-500/60 hover:text-sky-400 transition whitespace-nowrap"
-              >
-                {q.length > 40 ? q.slice(0, 38) + "…" : q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="border-t border-slate-700/60 px-4 py-3 shrink-0">
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            ask(input);
-          }}
-        >
+      {/* Input bar */}
+      <div style={{
+        padding: "12px 16px",
+        borderTop: "1px solid var(--graphite-line)",
+        display: "flex",
+        gap: 8,
+        backgroundColor: "var(--bg-panel-raised)",
+        flexShrink: 0,
+      }}>
+        <div style={{ position: "relative", flex: 1 }}>
           <input
-            ref={inputRef}
+            className="v-input"
+            style={{ paddingLeft: 14, paddingRight: 14 }}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }}}
+            placeholder="Ask about shipments, exceptions, carriers…"
             disabled={loading}
-            placeholder="Ask about shipments, lanes, exceptions…"
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-sky-500/60 transition disabled:opacity-50"
           />
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            className="rounded-lg bg-sky-600/80 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-500/80 disabled:opacity-40 transition min-w-[52px]"
-          >
-            {loading ? (
-              <span className="flex gap-0.5 items-center justify-center">
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-              </span>
-            ) : "Ask"}
-          </button>
-        </form>
+        </div>
+        <button
+          className="v-btn-primary"
+          onClick={() => send()}
+          disabled={loading || !input.trim()}
+        >
+          Send
+        </button>
       </div>
     </div>
   );

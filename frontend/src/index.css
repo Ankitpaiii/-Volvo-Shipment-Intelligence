@@ -1,186 +1,901 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=Big+Shoulders+Display:wght@900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── CSS Custom Properties ──────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   VOLVO SHIPMENT INTELLIGENCE — OBSIDIAN & PLATINUM SYSTEM
+   Strict solid hex tokens. Zero rgba(). Zero color hues.
+   Only red/amber/green for shipment risk status.
+   ══════════════════════════════════════════════════════════ */
+
+/* ── DARK THEME (default) ── */
 :root {
-  --volvo-blue: #003057;
-  --volvo-light: #1d6fa4;
-  --volvo-accent: #0099cc;
-  --volvo-steel: #4a6fa5;
-  --glass-bg: rgba(15, 23, 42, 0.75);
-  --glass-border: rgba(148, 163, 184, 0.12);
-  --glass-hover: rgba(30, 41, 59, 0.8);
-  --glow-red: rgba(239, 68, 68, 0.25);
-  --glow-amber: rgba(245, 158, 11, 0.2);
-  --glow-green: rgba(34, 197, 94, 0.2);
-  --glow-blue: rgba(0, 153, 204, 0.2);
+  --bg-void:             #050505;
+  --bg-void-line:        #0C0D0F;
+  --bg-panel:            #0F1012;
+  --bg-panel-raised:     #18191C;
+  --panel-edge:          #232427;
+  --graphite-line:       #2A2B2E;
+  --platinum-100:        #E8E9EC;
+  --silver-500:          #8E9095;
+  --silver-700:          #B7B9BE;
+  --chrome-highlight:    #F4F5F7;
+  --signal-red:          #E5564A;
+  --signal-amber:        #E0A23D;
+  --signal-green:        #3ECF8E;
 }
 
-/* ── Base ───────────────────────────────────────────── */
-* { box-sizing: border-box; }
+/* ── LIGHT THEME ── */
+.light {
+  --bg-void:             #E8E9EC;
+  --bg-void-line:        #DEDFE3;
+  --bg-panel:            #F6F7F9;
+  --bg-panel-raised:     #FFFFFF;
+  --panel-edge:          #EDEEF1;
+  --graphite-line:       #C7C9CF;
+  --platinum-100:        #0A0B0D;
+  --silver-500:          #6B6D73;
+  --silver-700:          #33353A;
+  --chrome-highlight:    #111214;
+  --signal-red:          #C7362B;
+  --signal-amber:        #B5740E;
+  --signal-green:        #1F8F5C;
+}
+
+/* ══════════════════════════════════════════════════════════
+   BASE RESET
+   ══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #020c1a;
-  color: #e2e8f0;
-  -webkit-font-smoothing: antialiased;
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 48, 87, 0.4), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0, 153, 204, 0.08), transparent);
+  font-family: 'DM Sans', 'Inter', -apple-system, sans-serif;
+  background-color: var(--bg-void);
+  background-image: repeating-linear-gradient(
+    115deg,
+    var(--bg-void) 0px, var(--bg-void) 2px,
+    var(--bg-void-line) 2px, var(--bg-void-line) 3px,
+    var(--bg-void) 3px, var(--bg-void) 40px
+  );
+  color: var(--platinum-100);
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ── Glassmorphism Cards ────────────────────────────── */
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
+/* ══════════════════════════════════════════════════════════
+   SEMANTIC LAYOUT CLASSES
+   ══════════════════════════════════════════════════════════ */
+
+/* ── SIDEBAR ── */
+.v-sidebar {
+  background-color: var(--bg-panel);
+  border-right: 1px solid var(--graphite-line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  gap: 4px;
+  width: 76px;
+  flex-shrink: 0;
+  z-index: 30;
 }
 
-.glass-hover:hover {
-  background: var(--glass-hover);
-  border-color: rgba(148, 163, 184, 0.2);
+/* ── NAV ITEM ── */
+.v-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px 4px;
+  width: 100%;
+  cursor: pointer;
+  color: var(--silver-500);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-left: 2px solid transparent;
+  border-radius: 0 6px 6px 0;
+  transition: color 0.18s ease, background-color 0.18s ease;
+  user-select: none;
 }
 
-/* ── KPI Glow Variants ──────────────────────────────── */
-.glow-red    { box-shadow: 0 0 24px var(--glow-red),    inset 0 0 12px rgba(239, 68, 68, 0.05); }
-.glow-amber  { box-shadow: 0 0 24px var(--glow-amber),  inset 0 0 12px rgba(245, 158, 11, 0.05); }
-.glow-green  { box-shadow: 0 0 24px var(--glow-green),  inset 0 0 12px rgba(34, 197, 94, 0.05); }
-.glow-blue   { box-shadow: 0 0 24px var(--glow-blue),   inset 0 0 12px rgba(0, 153, 204, 0.05); }
+.v-nav-item:hover {
+  color: var(--silver-700);
+  background-color: var(--bg-panel-raised);
+}
 
-/* ── Animations ─────────────────────────────────────── */
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(-8px); }
+/* Active: inverted fill — the sole active signal */
+.v-nav-item.active {
+  color: var(--bg-void);
+  background-color: var(--chrome-highlight);
+  border-left: 2px solid var(--chrome-highlight);
+  border-radius: 0 6px 6px 0;
+}
+
+/* ── HEADER ── */
+.v-header {
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--graphite-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 52px;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+/* ── CARD ── */
+.v-card {
+  background-color: var(--bg-panel-raised);
+  border: 1px solid var(--graphite-line);
+  border-top: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  transition: border-color 0.18s ease;
+  overflow: hidden;
+}
+
+/* Card header row */
+.v-card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--graphite-line);
+}
+
+/* ── LOGO BADGE ── */
+.v-logo-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #4A4C52, #0F1012);
+  border: 1px solid var(--graphite-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.light .v-logo-badge {
+  background: linear-gradient(145deg, #FFFFFF, #D5D7DC);
+  border-color: var(--graphite-line);
+}
+
+/* ── STATUS / LIVE PILL ── */
+.v-pill-live {
+  background-color: var(--chrome-highlight);
+  color: var(--bg-void);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* polling state */
+.v-pill-poll {
+  background-color: var(--bg-panel-raised);
+  color: var(--silver-500);
+  border: 1px solid var(--graphite-line);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 9999px;
+}
+
+/* ── STATUS BADGE ── */
+.v-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+}
+
+.v-badge-red    { color: var(--signal-red);   border-color: var(--signal-red); }
+.v-badge-amber  { color: var(--signal-amber);  border-color: var(--signal-amber); }
+.v-badge-green  { color: var(--signal-green);  border-color: var(--signal-green); }
+.v-badge-muted  { color: var(--silver-500); border-color: var(--graphite-line); }
+
+/* ── FILTER PILL ── */
+.v-filter-pill {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--graphite-line);
+  background-color: transparent;
+  color: var(--silver-500);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.v-filter-pill:hover {
+  color: var(--silver-700);
+  border-color: var(--silver-500);
+}
+
+.v-filter-pill.active {
+  background-color: var(--chrome-highlight);
+  color: var(--bg-void);
+  border-color: var(--chrome-highlight);
+}
+
+/* ── INPUT ── */
+.v-input {
+  width: 100%;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--graphite-line);
+  border-radius: 7px;
+  color: var(--platinum-100);
+  font-family: 'DM Sans', 'Inter', sans-serif;
+  font-size: 0.75rem;
+  padding: 8px 12px 8px 32px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.v-input::placeholder {
+  color: var(--silver-500);
+}
+
+.v-input:focus {
+  border-color: var(--silver-700);
+}
+
+/* ── BUTTON PRIMARY (inverted) ── */
+.v-btn-primary {
+  background-color: var(--chrome-highlight);
+  color: var(--bg-void);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 8px 18px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.v-btn-primary:hover { opacity: 0.9; }
+.v-btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── BUTTON GHOST ── */
+.v-btn-ghost {
+  background-color: transparent;
+  color: var(--silver-500);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 7px;
+  border: 1px solid var(--graphite-line);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.v-btn-ghost:hover {
+  color: var(--silver-700);
+  border-color: var(--silver-500);
+}
+
+/* ── EMPTY STATE ── */
+.v-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  gap: 8px;
+}
+
+.v-empty-icon {
+  color: var(--graphite-line);
+  margin-bottom: 4px;
+}
+
+.v-empty-title {
+  color: var(--silver-700);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.v-empty-sub {
+  color: var(--silver-500);
+  font-size: 0.72rem;
+  max-width: 220px;
+  line-height: 1.5;
+}
+
+/* ── KPI METRIC ── */
+.v-kpi-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--platinum-100);
+}
+
+.v-kpi-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--silver-500);
+}
+
+/* ── DIVIDER ── */
+.v-divider {
+  height: 1px;
+  background-color: var(--graphite-line);
+  border: none;
+  margin: 0;
+}
+
+/* ── SECTION TITLE ── */
+.v-section-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--silver-700);
+  padding: 0 16px 8px;
+}
+
+/* ── TYPOGRAPHY HELPERS ── */
+.v-text-primary   { color: var(--platinum-100); }
+.v-text-secondary { color: var(--silver-500); }
+.v-text-emphasis  { color: var(--silver-700); }
+.v-text-red       { color: var(--signal-red); }
+.v-text-amber     { color: var(--signal-amber); }
+.v-text-green     { color: var(--signal-green); }
+
+/* ── PROGRESS BAR ── */
+.v-progress-track {
+  height: 2px;
+  background-color: var(--graphite-line);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.v-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background-color: var(--graphite-line); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--silver-500); }
+
+/* ── LEAFLET MAP ── */
+.leaflet-container {
+  background: var(--bg-panel) !important;
+  border-radius: 10px;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--bg-panel-raised) !important;
+  border: 1px solid var(--graphite-line) !important;
+  color: var(--platinum-100) !important;
+  font-family: 'DM Sans', 'Inter', sans-serif !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-panel-raised) !important;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulseRing {
-  0%   { transform: scale(1); opacity: 0.8; }
-  70%  { transform: scale(1.4); opacity: 0; }
-  100% { transform: scale(1.4); opacity: 0; }
+.v-animate { animation: fadeSlide 0.2s ease forwards; }
+
+@keyframes p1pulse {
+  0%, 100% { border-color: var(--signal-red); }
+  50%       { border-color: var(--graphite-line); }
 }
 
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+.v-p1-pulse { animation: p1pulse 1.6s ease-in-out infinite; }
+
+/* ══════════════════════════════════════════════════════════
+   VOLVO METALLIC WORDMARK
+   Ultra-sharp, heavy-weight, vibrant chrome silver.
+   ══════════════════════════════════════════════════════════ */
+.v-volvo-wordmark {
+  /* Big Shoulders Display 900 — sharp geometric vertical strokes */
+  font-family: 'Big Shoulders Display', 'Arial Black', Impact, sans-serif;
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  line-height: 1;
+  padding-right: 0.42em; /* balance the trailing letter-spacing */
+
+  /* ── High-contrast chrome silver gradient (dark) ──
+     Pure white specular peak → platinum → silver mid → 
+     graphite shadow valley → back to bright platinum.  */
+  background: linear-gradient(
+    180deg,
+    #FFFFFF  0%,
+    #EAECEF  8%,
+    #C8CDD4 20%,
+    #8E9095 32%,
+    #4A4D53 44%,
+    #070708 50%,
+    #4A4D53 56%,
+    #8E9095 64%,
+    #C8CDD4 76%,
+    #EAECEF 88%,
+    #FFFFFF 100%
+  );
+  background-size: 100% 300%;
+  background-position: 0% 15%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  /* Depth shadow — makes strokes feel physically raised */
+  filter: drop-shadow(0px 1px 0px #000000) drop-shadow(0px -1px 0px #E8E9EC);
+
+  animation: volvoShimmer 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
 }
 
-@keyframes countUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Light theme: deep steel gradient, still sharp */
+.light .v-volvo-wordmark {
+  background: linear-gradient(
+    180deg,
+    #0A0B0D  0%,
+    #1E2024  8%,
+    #33353A 20%,
+    #6B6D73 32%,
+    #9EA0A6 44%,
+    #F0F1F3 50%,
+    #9EA0A6 56%,
+    #6B6D73 64%,
+    #33353A 76%,
+    #1E2024 88%,
+    #0A0B0D 100%
+  );
+  background-size: 100% 300%;
+  background-position: 0% 15%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  filter: drop-shadow(0px 1px 0px #FFFFFF) drop-shadow(0px -1px 0px #0A0B0D);
+  animation: volvoShimmerLight 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
 }
 
-@keyframes spinSlow {
+@keyframes volvoShimmer {
+  0%   { background-position: 0% 5%;  }
+  100% { background-position: 0% 95%; }
+}
+@keyframes volvoShimmerLight {
+  0%   { background-position: 0% 95%; }
+  100% { background-position: 0% 5%;  }
+}
+
+.v-theme-toggle {
+  background-color: var(--bg-panel-raised);
+  border: 1px solid var(--graphite-line);
+  color: var(--silver-500);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.v-theme-toggle:hover {
+  color: var(--silver-700);
+  border-color: var(--silver-500);
+}
+
+/* Typing dots */
+.v-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--silver-500);
+  display: inline-block;
+  animation: dotPulse 1.2s infinite;
+}
+.v-dot:nth-child(2) { animation-delay: 0.2s; }
+.v-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 60%, 100% { transform: scale(1); opacity: 0.6; }
+  30% { transform: scale(1.3); opacity: 1; }
+}
+
+/* ── HIDE SCROLLBAR helper ── */
+.hide-scrollbar { scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ── RISK PROGRESS BARS (mini bars inside tables) ── */
+.v-minibar-track {
+  flex: 1;
+  height: 4px;
+  background-color: var(--panel-edge);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.v-minibar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ══════════════════════════════════════════════════════════
+   METALLIC DECORATIVE SYSTEM
+   Pure CSS — pseudo-elements, gradients, keyframes.
+   Never covers text or interactive targets.
+   ══════════════════════════════════════════════════════════ */
+
+/* ── 1. CHROME SWEEP on card hover ──
+   A traveling highlight that reads like light catching
+   a polished steel surface — sits behind all content.    */
+.v-card {
+  position: relative;
+  overflow: hidden;
+}
+.v-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 35%,
+    #F4F5F7 50%,
+    transparent 65%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: translateX(-120%);
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.05s ease;
+}
+.v-card:hover::before {
+  opacity: 0.028;
+  animation: chromeSweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.light .v-card:hover::before {
+  opacity: 0.5;
+}
+@keyframes chromeSweep {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(160%); }
+}
+
+/* Make card children sit above pseudo layers */
+.v-card > * { position: relative; z-index: 2; }
+
+/* ── 2. MACHINED-EDGE BEVEL on top of every card ──
+   Simulates a precision chamfer catching light.        */
+.v-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #3A3C40 10%,
+    #8E9095 35%,
+    #D4D6DB 50%,
+    #8E9095 65%,
+    #3A3C40 90%,
+    transparent 100%
+  );
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 1;
+}
+.light .v-card::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #D0D2D7 10%,
+    #FFFFFF 45%,
+    #FFFFFF 55%,
+    #D0D2D7 90%,
+    transparent 100%
+  );
+  opacity: 0.9;
+}
+
+/* ── 3. SIDEBAR BRUSHED-CROSSHATCH TEXTURE ──
+   Fine diagonal lines at ~2% opacity — industrial brushing. */
+.v-sidebar {
+  position: relative;
+}
+.v-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0px,
+    transparent 3px,
+    #F4F5F7 3px,
+    #F4F5F7 3.35px,
+    transparent 3.35px,
+    transparent 6px
+  );
+  opacity: 0.018;
+  pointer-events: none;
+  z-index: 0;
+}
+.light .v-sidebar::before {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0px,
+    transparent 3px,
+    #0A0B0D 3px,
+    #0A0B0D 3.35px,
+    transparent 3.35px,
+    transparent 6px
+  );
+  opacity: 0.04;
+}
+.v-sidebar > * { position: relative; z-index: 1; }
+
+/* ── 4. HEADER METALLIC SHEEN + CHROME HAIRLINE ── */
+.v-header {
+  position: relative;
+}
+.v-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #3A3D44 0%, #1A1C20 40%, #0F1012 100%);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+.light .v-header::before {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F0F1F4 50%, #E6E7EB 100%);
+  opacity: 0.6;
+}
+/* Bottom chrome hairline */
+.v-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #2A2B2E 5%,
+    #8E9095 30%,
+    #D4D6DB 50%,
+    #8E9095 70%,
+    #2A2B2E 95%,
+    transparent 100%
+  );
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 2;
+}
+.light .v-header::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #C7C9CF 5%,
+    #FFFFFF 50%,
+    #C7C9CF 95%,
+    transparent 100%
+  );
+  opacity: 1;
+}
+.v-header > * { position: relative; z-index: 1; }
+
+/* ── 5. LOGO BADGE SPINNING CHROME RING ──
+   A slow conic-gradient arc — precision bearing race.   */
+.v-logo-badge {
+  position: relative;
+}
+.v-logo-badge::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    #8E9095 60deg,
+    #F4F5F7 120deg,
+    #8E9095 180deg,
+    transparent 240deg,
+    transparent 360deg
+  );
+  animation: badgeSpin 10s linear infinite;
+  z-index: -1;
+  opacity: 0.5;
+}
+.light .v-logo-badge::after {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    #6B6D73 60deg,
+    #111214 120deg,
+    #6B6D73 180deg,
+    transparent 240deg,
+    transparent 360deg
+  );
+  opacity: 0.25;
+}
+@keyframes badgeSpin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 
-@keyframes p1flash {
-  0%, 100% { border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.06); }
-  50%       { border-color: rgba(239, 68, 68, 0.9); background: rgba(239, 68, 68, 0.14); }
+/* ── 6. ACTIVE NAV ITEM CNC CHAMFER ──
+   clip-path cuts the top/bottom-right corners of the
+   active pill — a machined enclosure detail.           */
+.v-nav-item.active {
+  clip-path: polygon(
+    0% 0%,
+    calc(100% - 7px) 0%,
+    100% 7px,
+    100% calc(100% - 7px),
+    calc(100% - 7px) 100%,
+    0% 100%
+  );
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(24px); }
-  to   { opacity: 1; transform: translateX(0); }
+/* ── 7. FILTER PILL — pressed-metal top highlight ── */
+.v-filter-pill { position: relative; }
+.v-filter-pill.active::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 15%; right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #F4F5F7, transparent);
+  opacity: 0.55;
+  border-radius: 99px;
+}
+.light .v-filter-pill.active::before {
+  background: linear-gradient(90deg, transparent, #FFFFFF, transparent);
+  opacity: 0.8;
 }
 
-@keyframes dotBounce {
-  0%, 80%, 100% { transform: translateY(0); }
-  40%           { transform: translateY(-6px); }
+/* ── 8. PROGRESS TRACK — machined channel indent ── */
+.v-progress-track {
+  background: linear-gradient(180deg, #050505 0%, #18191C 100%);
+}
+.light .v-progress-track {
+  background: linear-gradient(180deg, #C7C9CF 0%, #E8E9EC 100%);
+}
+.v-minibar-track {
+  background: linear-gradient(180deg, #050505 0%, #18191C 100%);
+}
+.light .v-minibar-track {
+  background: linear-gradient(180deg, #C7C9CF 0%, #E8E9EC 100%);
 }
 
-.animate-fade-slide { animation: fadeSlideIn 0.35s ease forwards; }
-.animate-count-up   { animation: countUp 0.5s ease forwards; }
-.animate-slide-right { animation: slideInRight 0.3s ease forwards; }
-.animate-p1-flash   { animation: p1flash 1.5s ease-in-out infinite; }
-
-/* ── Typing Dots ────────────────────────────────────── */
-.typing-dot {
-  display: inline-block;
-  width: 6px; height: 6px;
+/* ── 9. SECTION TITLE RIVET DOTS ──
+   Tiny circular rivets flanking section headings.     */
+.v-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.v-section-title::before,
+.v-section-title::after {
+  content: "";
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: #94a3b8;
-  animation: dotBounce 1.2s ease-in-out infinite;
+  background: linear-gradient(135deg, #6A6D74, #2A2B2E);
+  flex-shrink: 0;
 }
-.typing-dot:nth-child(2) { animation-delay: 0.15s; }
-.typing-dot:nth-child(3) { animation-delay: 0.30s; }
-
-/* ── Skeleton Loading ───────────────────────────────── */
-.skeleton {
-  background: linear-gradient(90deg, #1e293b 25%, #273347 50%, #1e293b 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 4px;
+.light .v-section-title::before,
+.light .v-section-title::after {
+  background: linear-gradient(135deg, #FFFFFF, #C7C9CF);
 }
 
-/* ── Scrollbar ──────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
-  border-radius: 3px;
+/* ── 10. DIVIDER — chrome flash center reflection ── */
+.v-divider {
+  border: none;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #2A2B2E 8%,
+    #8E9095 35%,
+    #D4D6DB 50%,
+    #8E9095 65%,
+    #2A2B2E 92%,
+    transparent 100%
+  );
+  opacity: 0.5;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
-}
-
-/* ── Leaflet Map ────────────────────────────────────── */
-.leaflet-container {
-  background: #0a1628;
-  border-radius: 0.75rem;
-  font-family: 'Inter', sans-serif;
-}
-.leaflet-popup-content-wrapper {
-  background: rgba(15, 23, 42, 0.95) !important;
-  border: 1px solid rgba(148, 163, 184, 0.2) !important;
-  backdrop-filter: blur(8px);
-  color: #e2e8f0 !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
-}
-.leaflet-popup-tip { background: rgba(15, 23, 42, 0.95) !important; }
-.leaflet-control-zoom a {
-  background: rgba(15, 23, 42, 0.9) !important;
-  color: #e2e8f0 !important;
-  border-color: rgba(148, 163, 184, 0.2) !important;
+.light .v-divider {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #C7C9CF 8%,
+    #FFFFFF 50%,
+    #C7C9CF 92%,
+    transparent 100%
+  );
+  opacity: 0.85;
 }
 
-/* ── Tab Nav ────────────────────────────────────────── */
-.tab-active {
-  color: #38bdf8;
-  border-bottom: 2px solid #38bdf8;
+/* ── 11. BODY VIGNETTE — enclosure housing depth ── */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 55%, #000000 135%);
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 9999;
 }
-.tab-inactive {
-  color: #64748b;
-  border-bottom: 2px solid transparent;
-}
-.tab-inactive:hover {
-  color: #94a3b8;
-  border-bottom-color: rgba(148, 163, 184, 0.3);
+.light body::after { opacity: 0.05; }
+
+/* ── 12. KPI SHIMMER ANIMATION on mount ── */
+@keyframes kpiShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
-/* ── Risk Bar ───────────────────────────────────────── */
-.risk-bar-fill {
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+/* ── 13. SIDEBAR VOLVO LOGO — slow pulse glow ──
+   The iron-mark badge breathes slowly, like a standby
+   indicator on precision industrial equipment.         */
+@keyframes volvoPulse {
+  0%, 100% { filter: drop-shadow(0 0 4px #8E9095) drop-shadow(0 0 1px #2A2B2E); opacity: 0.95; }
+  50%       { filter: drop-shadow(0 0 8px #D4D6DB) drop-shadow(0 0 2px #8E9095); opacity: 1; }
 }
 
-/* ── Milestone Timeline ─────────────────────────────── */
-.milestone-line {
-  width: 2px;
-  background: linear-gradient(to bottom, #22c55e, #1e293b);
+.v-sidebar > div:first-child svg {
+  animation: volvoPulse 4s ease-in-out infinite;
 }
 
-/* ── Status Badge ───────────────────────────────────── */
-.status-badge {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 9999px;
+/* Light: darker glow */
+.light .v-sidebar > div:first-child svg {
+  animation: volvoPulseLight 4s ease-in-out infinite;
 }
+@keyframes volvoPulseLight {
+  0%, 100% { filter: drop-shadow(0 0 3px #C7C9CF); opacity: 0.9; }
+  50%       { filter: drop-shadow(0 0 6px #33353A); opacity: 1; }
+}
+
+

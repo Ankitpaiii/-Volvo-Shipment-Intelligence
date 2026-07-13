@@ -5,7 +5,7 @@
 
 ---
 
-## Overview
+## 📖 Overview
 
 The **Volvo Shipment Intelligence Platform** is a sophisticated, real-time supply chain dashboard designed to solve the "black box" problem of international and domestic freight tracking. Moving beyond simple point-A-to-point-B tracking, this platform introduces a **Gap Detection Engine** that proactively calculates delay risks, tracks per-milestone Service Level Agreements (SLAs), and alerts operators to supply chain anomalies *before* they result in line stoppages.
 
@@ -14,27 +14,27 @@ In JIT (Just-In-Time) and JIS (Just-In-Sequence) manufacturing, a delayed truck 
 
 ---
 
-## Core Capabilities
+## ✨ Core Capabilities
 
-### 1. Gap Detection & Risk Scoring Engine
+### 1. 🧠 Gap Detection & Risk Scoring Engine
 A continuous background worker that analyzes the health of every active shipment:
 - **Milestone SLA Tracking:** Flags shipments if specific milestones (e.g., `PICKUP_COMPLETED`, `GATE_ARRIVAL`) are not met within expected time windows.
 - **Carrier Compliance Penalty:** Automatically penalizes the health score of shipments where the carrier failed to provide mandatory updates.
 - **GPS Anomaly Detection:** Flags shipments if the GPS signal goes stale (>45 mins) or if consecutive signal gaps suggest telematics device tampering or failure.
 - **Criticality Weighting:** Applies heavier risk multipliers to `JIT` and `JIS` shipments compared to `STANDARD` freight.
 
-### 2. Real-Time Operations (SSE Push)
+### 2. ⚡ Real-Time Operations (SSE Push)
 Unlike legacy dashboards that require manual refreshes, this platform utilizes **Server-Sent Events (SSE)**. As the background simulator generates new GPS pings or the Gap Engine uncovers new exceptions, they are pushed instantly to the frontend.
 - **Pulsing Risk Radars:** Map markers for at-risk shipments pulse in real-time.
 - **Instant Alerts:** P1 (Critical) exceptions slide into the Exception Queue with a red flash without a page reload.
 
-### 3. AI Supply Chain Copilot
+### 3. 🤖 AI Supply Chain Copilot
 Powered by **Anthropic Claude 3.5**, the copilot has full context of the live database. 
 - Ask natural language questions like: *"Which JIT shipments to Gothenburg are at risk today?"* or *"How is DHL Freight performing this week?"*
 - Maintains conversation history for follow-up questions.
 - Injects live ETA, confidence scores, and missing milestone data into the prompt for hyper-accurate answers.
 
-### 4. Executive Analytics Dashboard
+### 4. 📊 Executive Analytics Dashboard
 A dedicated view for supply chain managers to assess network health:
 - **OTIF (On-Time In-Full) & On-Time Pickup Tracking.**
 - **Carrier Scorecards:** Sortable tables showing compliance rates, on-time delivery rates, and P1 exception counts per carrier.
@@ -42,7 +42,7 @@ A dedicated view for supply chain managers to assess network health:
 
 ---
 
-## System Architecture & Data Flow
+## 🏗️ System Architecture & Data Flow
 
 ```mermaid
 graph TD
@@ -94,7 +94,7 @@ graph TD
 
 ---
 
-## Installation & Setup Guide
+## 🚀 Installation & Setup Guide
 
 Follow these steps to run the platform locally on your machine.
 
@@ -156,7 +156,7 @@ Open your web browser and navigate to **[http://localhost:5173](http://localhost
 
 ---
 
-## Usage Walkthrough
+## 🖥️ Usage Walkthrough
 
 1. **Operations Tab:** 
    - **Shipment List:** Use the search bar to filter by PO number, Supplier, or Carrier. Use the filter pills to isolate `AT_RISK` or `JIT` shipments.
@@ -173,7 +173,7 @@ Open your web browser and navigate to **[http://localhost:5173](http://localhost
 
 ---
 
-## API Endpoints Overview
+## 📡 API Endpoints Overview
 
 The backend exposes a fully documented Swagger UI. While the server is running, visit **http://localhost:8000/docs** to interact with the API.
 
@@ -187,7 +187,7 @@ The backend exposes a fully documented Swagger UI. While the server is running, 
 
 ---
 
-## Future Roadmap (Production Readiness)
+## 🗺️ Future Roadmap (Production Readiness)
 While this MVP is fully functional, moving it to production would involve:
 1. **Database Migration:** Swapping SQLite for **PostgreSQL**.
 2. **Event Streaming:** Replacing the internal Python `asyncio.Queue` with **Apache Kafka** to handle millions of telematics pings.

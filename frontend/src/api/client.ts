@@ -1,6 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || "";
-
-export interface Shipment {
+import { mockShipments, mockExceptions, mockEvents, mockScorecards, mockLanes } from "./mockData";export interface Shipment {
   shipment_id: string;
   po_number: string;
   status: string;
@@ -106,6 +105,8 @@ export type SSEEvent =
   | { type: "new_exception"; exception_id: string; shipment_id: string; exception_type: string; severity: string; message: string; business_impact_score: number }
   | { type: "gps_update"; count: number };
 
+const USE_MOCK = import.meta.env.VITE_USE_BACKEND !== "true";
+
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -119,6 +120,25 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export function subscribeToSSE(onEvent: (event: SSEEvent) => void): () => void {
+  if (USE_MOCK) {
+    // Simulate connection
+    setTimeout(() => onEvent({ type: "connected", message: "Connected to live stream" }), 500);
+
+    // Simulate an exception after 10 seconds
+    const timeoutId = setTimeout(() => {
+      onEvent({
+        type: "new_exception",
+        exception_id: "EXC-103",
+        shipment_id: "SHP-33451",
+        exception_type: "TEMPERATURE_ALERT",
+        severity: "P1",
+        message: "Temperature deviation detected in reefer unit.",
+        business_impact_score: 95
+      });
+    }, 10000);
+    return () => clearTimeout(timeoutId);
+  }
+
   const es = new EventSource(`${API_BASE}/api/v1/stream`);
   es.onmessage = (e) => {
     try {
@@ -135,9 +155,22 @@ export function subscribeToSSE(onEvent: (event: SSEEvent) => void): () => void {
 }
 
 export const api = {
-  getKPIs: () => fetchJson<KPIs>("/api/v1/kpis"),
-  getExtendedKPIs: () => fetchJson<ExtendedKPIs>("/api/v1/kpis/extended"),
-  getShipments: (params?: { status?: string; lane?: string; search?: string; criticality?: string; sort?: string }) => {
+  getKPIs: async () => {
+    if (USE_MOCK) {
+      return { shipments_in_transit: 1243, at_risk_count: 42, missing_milestone_count: 18, open_exceptions: 12, avg_health_score: 88 } as KPIs;
+    }
+    return fetchJson<KPIs>("/api/v1/kpis");
+  },
+  getExtendedKPIs: async () => {
+    if (USE_MOCK) {
+      return { shipments_in_transit: 1243, at_risk_count: 42, missing_milestone_count: 18, open_exceptions: 12, avg_health_score: 88, otif_pct: 94.2, on_time_pickup_pct: 96.5, avg_dwell_hours: 4.2, carrier_compliance_pct: 98.1, critical_at_risk: 8, total_shipments: 4520 } as ExtendedKPIs;
+    }
+    return fetchJson<ExtendedKPIs>("/api/v1/kpis/extended");
+  },
+  getShipments: async (params?: { status?: string; lane?: string; search?: string; criticality?: string; sort?: string }) => {
+    if (USE_MOCK) {
+      return { items: mockShipments, total: mockShipments.length };
+    }
     const q = new URLSearchParams();
     if (params?.status) q.set("status", params.status);
     if (params?.lane) q.set("lane", params.lane);
@@ -146,19 +179,43 @@ export const api = {
     if (params?.sort) q.set("sort", params.sort);
     return fetchJson<{ items: Shipment[]; total: number }>(`/api/v1/shipments?${q}`);
   },
-  getShipment: (id: string) => fetchJson<ShipmentDetail>(`/api/v1/shipments/${id}`),
-  getEvents: (id: string) => fetchJson<MilestoneEvent[]>(`/api/v1/shipments/${id}/events`),
-  getExceptions: (status = "OPEN") => fetchJson<Exception[]>(`/api/v1/exceptions?status=${status}`),
-  exceptionAction: (id: string, action: string, notes?: string) =>
-    fetchJson<Exception>(`/api/v1/exceptions/${id}/actions`, {
+  getShipment: async (id: string) => {
+    if (USE_MOCK) {
+      const s = mockShipments.find(x => x.shipment_id === id);
+      return { ...s, actual_pickup: s?.planned_pickup || null, actual_delivery: null, references: { "Bill of Lading": "BOL-9921", "Container": "HLXU829103" }, created_at: "2026-07-01T10:00:00Z" } as ShipmentDetail;
+    }
+    return fetchJson<ShipmentDetail>(`/api/v1/shipments/${id}`);
+  },
+  getEvents: async (id: string) => {
+    if (USE_MOCK) return mockEvents as MilestoneEvent[];
+    return fetchJson<MilestoneEvent[]>(`/api/v1/shipments/${id}/events`);
+  },
+  getExceptions: async (status = "OPEN") => {
+    if (USE_MOCK) return mockExceptions as Exception[];
+    return fetchJson<Exception[]>(`/api/v1/exceptions?status=${status}`);
+  },
+  exceptionAction: async (id: string, action: string, notes?: string) => {
+    if (USE_MOCK) return { ...mockExceptions[0], status: "RESOLVED" } as Exception;
+    return fetchJson<Exception>(`/api/v1/exceptions/${id}/actions`, {
       method: "POST",
       body: JSON.stringify({ action, notes }),
-    }),
-  copilotChat: (question: string, sessionId = "default") =>
-    fetchJson<{ answer: string; sources: string[] }>("/api/v1/copilot/chat", {
+    });
+  },
+  copilotChat: async (question: string, sessionId = "default") => {
+    if (USE_MOCK) {
+      return { answer: "Based on the latest supply chain data, the shipment from Stuttgart (SHP-10492) is delayed due to severe weather near Hamburg. The JIT inventory at the Gothenburg plant is at risk. I recommend rerouting via rail corridor.", sources: ["Weather API", "Carrier Update", "Inventory DB"] };
+    }
+    return fetchJson<{ answer: string; sources: string[] }>("/api/v1/copilot/chat", {
       method: "POST",
       body: JSON.stringify({ question, session_id: sessionId }),
-    }),
-  getCarrierScorecards: () => fetchJson<CarrierScorecard[]>("/api/v1/reports/carrier-scorecards"),
-  getLanePerformance: () => fetchJson<LanePerformance[]>("/api/v1/reports/lane-performance"),
+    });
+  },
+  getCarrierScorecards: async () => {
+    if (USE_MOCK) return mockScorecards as CarrierScorecard[];
+    return fetchJson<CarrierScorecard[]>("/api/v1/reports/carrier-scorecards");
+  },
+  getLanePerformance: async () => {
+    if (USE_MOCK) return mockLanes as LanePerformance[];
+    return fetchJson<LanePerformance[]>("/api/v1/reports/lane-performance");
+  },
 };

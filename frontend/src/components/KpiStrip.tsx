@@ -1,27 +1,36 @@
 import { useEffect, useRef, useState } from "react";
 import type { ExtendedKPIs, KPIs } from "../api/client";
 
-interface Card {
+interface CardConfig {
   key: keyof ExtendedKPIs;
   label: string;
-  color: string;
-  glow: string;
   suffix?: string;
-  icon: string;
-  threshold?: { warn: number; danger: number };
+  thresholdWarn?: number;
+  thresholdDanger?: number;
   higherIsBetter?: boolean;
 }
 
-const CARDS: Card[] = [
-  { key: "shipments_in_transit", label: "In Transit", color: "text-sky-400", glow: "glow-blue", icon: "🚛", higherIsBetter: true },
-  { key: "at_risk_count", label: "At Risk", color: "text-amber-400", glow: "glow-amber", icon: "⚠️", threshold: { warn: 5, danger: 12 } },
-  { key: "critical_at_risk", label: "JIT/JIS Critical", color: "text-orange-400", glow: "glow-amber", icon: "🔴", threshold: { warn: 2, danger: 5 } },
-  { key: "open_exceptions", label: "Open Exceptions", color: "text-red-400", glow: "glow-red", icon: "🚨", threshold: { warn: 5, danger: 10 } },
-  { key: "otif_pct", label: "OTIF", color: "text-emerald-400", glow: "glow-green", icon: "✅", suffix: "%", higherIsBetter: true },
-  { key: "avg_health_score", label: "Avg Health", color: "text-teal-400", glow: "glow-green", icon: "❤️", suffix: "%", higherIsBetter: true },
-  { key: "carrier_compliance_pct", label: "Carrier Compliance", color: "text-violet-400", glow: "glow-blue", icon: "📋", suffix: "%", higherIsBetter: true },
-  { key: "avg_dwell_hours", label: "Avg Dwell (hrs)", color: "text-slate-300", glow: "", icon: "⏱️", threshold: { warn: 3, danger: 6 } },
+const CARDS: CardConfig[] = [
+  { key: "shipments_in_transit", label: "In Transit", higherIsBetter: true },
+  { key: "at_risk_count",       label: "At Risk",    thresholdWarn: 5, thresholdDanger: 12 },
+  { key: "critical_at_risk",    label: "JIT / JIS",  thresholdWarn: 2, thresholdDanger: 5 },
+  { key: "open_exceptions",     label: "Exceptions", thresholdWarn: 5, thresholdDanger: 10 },
+  { key: "otif_pct",            label: "OTIF",       suffix: "%", higherIsBetter: true },
+  { key: "avg_health_score",    label: "Avg Health", suffix: "%", higherIsBetter: true },
+  { key: "carrier_compliance_pct", label: "Compliance", suffix: "%", higherIsBetter: true },
+  { key: "avg_dwell_hours",     label: "Dwell",      thresholdWarn: 3, thresholdDanger: 6 },
 ];
+
+function valueColor(card: CardConfig, value: number): string {
+  if (card.higherIsBetter) {
+    if (value >= 90) return "var(--signal-green)";
+    if (value >= 70) return "var(--signal-amber)";
+    return "var(--signal-red)";
+  }
+  if (card.thresholdDanger !== undefined && value >= card.thresholdDanger) return "var(--signal-red)";
+  if (card.thresholdWarn   !== undefined && value >= card.thresholdWarn)   return "var(--signal-amber)";
+  return "var(--platinum-100)";
+}
 
 function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
   const [displayed, setDisplayed] = useState(0);
@@ -30,86 +39,58 @@ function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string
   useEffect(() => {
     const start = prevRef.current;
     const end = value;
-    const duration = 600;
+    const duration = 550;
     const startTime = performance.now();
     const step = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
+      const p = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
       setDisplayed(Math.round(start + (end - start) * eased));
-      if (progress < 1) requestAnimationFrame(step);
+      if (p < 1) requestAnimationFrame(step);
       else prevRef.current = end;
     };
     requestAnimationFrame(step);
   }, [value]);
 
-  return (
-    <span className="tabular-nums">
-      {Number.isInteger(value) ? displayed : value.toFixed(1)}
-      {suffix}
-    </span>
-  );
+  return <span>{Number.isInteger(value) ? displayed : value.toFixed(1)}{suffix}</span>;
 }
 
-interface Props {
-  kpis: KPIs | ExtendedKPIs | null;
-}
-
-export function KpiStrip({ kpis }: Props) {
-  const extKpis = kpis as ExtendedKPIs | null;
-  const visibleCards = extKpis?.otif_pct !== undefined ? CARDS : CARDS.slice(0, 5);
+export function KpiStrip({ kpis }: { kpis: KPIs | ExtendedKPIs | null }) {
+  const ext = kpis as ExtendedKPIs | null;
+  const visible = ext?.otif_pct !== undefined ? CARDS : CARDS.slice(0, 5);
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-      {visibleCards.map((card) => {
-        const rawValue = extKpis ? (extKpis[card.key] as number) : null;
-        const value = rawValue ?? 0;
-        const isLoading = rawValue === null;
-
-        let glowClass = card.glow;
-        if (card.threshold && rawValue !== null) {
-          if (value >= card.threshold.danger) glowClass = "glow-red";
-          else if (value >= card.threshold.warn) glowClass = "glow-amber";
-        }
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
+      {visible.map((card) => {
+        const raw = ext ? (ext[card.key] as number) : null;
+        const val = raw ?? 0;
+        const color = raw !== null ? valueColor(card, val) : "var(--silver-500)";
+        const progress = card.thresholdDanger
+          ? Math.min(100, (val / card.thresholdDanger) * 100)
+          : card.higherIsBetter ? Math.min(100, val) : 0;
 
         return (
           <div
             key={card.key}
-            className={`glass rounded-xl p-4 transition-all duration-500 ${glowClass} animate-fade-slide`}
+            className="v-card"
+            style={{ padding: "14px 16px" }}
           >
-            <div className="flex items-start justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">{card.label}</p>
-              <span className="text-base">{card.icon}</span>
-            </div>
-            <p className={`mt-2 text-2xl font-bold ${card.color}`}>
-              {isLoading ? (
-                <span className="skeleton block h-8 w-16" />
-              ) : (
-                <AnimatedNumber value={value} suffix={card.suffix} />
-              )}
+            <p className="v-kpi-label" style={{ marginBottom: 8 }}>{card.label}</p>
+            <p className="v-kpi-value" style={{ color, marginBottom: 8 }}>
+              {raw === null
+                ? <span style={{ color: "var(--silver-500)", fontSize: "0.85rem" }}>—</span>
+                : <AnimatedNumber value={val} suffix={card.suffix} />
+              }
             </p>
-            {/* Mini trend bar */}
-            {!isLoading && card.threshold && (
-              <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${
-                    value >= card.threshold.danger
-                      ? "bg-red-500"
-                      : value >= card.threshold.warn
-                      ? "bg-amber-500"
-                      : "bg-emerald-500"
-                  }`}
-                  style={{ width: `${Math.min(100, (value / card.threshold.danger) * 100)}%` }}
-                />
-              </div>
-            )}
-            {!isLoading && card.higherIsBetter && card.suffix === "%" && (
-              <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800">
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-700"
-                  style={{ width: `${Math.min(100, value)}%` }}
-                />
-              </div>
-            )}
+            {/* Progress bar */}
+            <div className="v-progress-track">
+              <div
+                className="v-progress-fill"
+                style={{
+                  width: `${progress}%`,
+                  backgroundColor: color,
+                }}
+              />
+            </div>
           </div>
         );
       })}

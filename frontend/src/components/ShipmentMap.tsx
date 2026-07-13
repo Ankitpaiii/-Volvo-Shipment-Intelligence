@@ -9,19 +9,19 @@ import {
 import type { Shipment } from "../api/client";
 
 function riskColor(score: number): string {
-  if (score >= 70) return "#ef4444";
-  if (score >= 40) return "#f59e0b";
-  return "#22c55e";
+  if (score >= 70) return "#E5564A";   // signal-red dark / #C7362B light
+  if (score >= 40) return "#E0A23D";   // signal-amber
+  return "#3ECF8E";                    // signal-green
 }
 
 function statusLabel(status: string): string {
   const map: Record<string, string> = {
     IN_TRANSIT: "In Transit",
-    AT_RISK: "At Risk",
-    DELAYED: "Delayed",
-    DELIVERED: "Delivered",
-    PLANNED: "Planned",
-    CLOSED: "Closed",
+    AT_RISK:    "At Risk",
+    DELAYED:    "Delayed",
+    DELIVERED:  "Delivered",
+    PLANNED:    "Planned",
+    CLOSED:     "Closed",
   };
   return map[status] || status;
 }
@@ -30,12 +30,13 @@ interface Props {
   shipments: Shipment[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  theme?: "light" | "dark";
 }
 
 function PulsingMarker({ shipment, selected, onSelect }: { shipment: Shipment; selected: boolean; onSelect: () => void }) {
   const isPulsing = shipment.status === "AT_RISK" || shipment.status === "DELAYED";
-  const color = riskColor(shipment.delay_risk_score);
-  const radius = selected ? 11 : 7;
+  const color     = riskColor(shipment.delay_risk_score);
+  const radius    = selected ? 11 : 7;
 
   return (
     <>
@@ -43,20 +44,14 @@ function PulsingMarker({ shipment, selected, onSelect }: { shipment: Shipment; s
         <Circle
           center={[shipment.current_lat!, shipment.current_lng!]}
           radius={selected ? 100000 : 60000}
-          pathOptions={{
-            color,
-            fillColor: color,
-            fillOpacity: 0.08,
-            weight: 1.5,
-            dashArray: "6 4",
-          }}
+          pathOptions={{ color, fillColor: color, fillOpacity: 0.07, weight: 1.5, dashArray: "6 4" }}
         />
       )}
       <CircleMarker
         center={[shipment.current_lat!, shipment.current_lng!]}
         radius={radius}
         pathOptions={{
-          color: selected ? "#38bdf8" : color,
+          color: selected ? "#F4F5F7" : color,
           fillColor: color,
           fillOpacity: 0.9,
           weight: selected ? 3 : 1.5,
@@ -64,30 +59,33 @@ function PulsingMarker({ shipment, selected, onSelect }: { shipment: Shipment; s
         eventHandlers={{ click: onSelect }}
       >
         <Popup>
-          <div className="space-y-1 min-w-[160px]">
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-bold text-sm text-slate-100">{shipment.po_number}</p>
-              <span
-                className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-                style={{ background: `${color}30`, color }}
-              >
+          <div style={{ minWidth: 160, display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--platinum-100)" }}>
+                {shipment.po_number}
+              </span>
+              <span style={{
+                fontSize: "0.65rem", fontWeight: 700, padding: "2px 6px",
+                borderRadius: 9999, border: `1px solid ${color}`, color,
+              }}>
                 {shipment.delay_risk_score}%
               </span>
             </div>
-            <p className="text-xs text-slate-400">{shipment.lane_name}</p>
-            <p className="text-xs text-slate-300">
-              <span className="text-slate-500">Carrier: </span>{shipment.carrier_name}
-            </p>
-            <p className="text-xs">
-              <span
-                className="status-badge"
-                style={{ background: `${color}20`, color }}
-              >
-                {statusLabel(shipment.status)}
-              </span>
-            </p>
+            <span style={{ fontSize: "0.68rem", color: "var(--silver-500)" }}>{shipment.lane_name}</span>
+            <span style={{ fontSize: "0.68rem", color: "var(--silver-700)" }}>
+              <span style={{ color: "var(--silver-500)" }}>Carrier: </span>
+              {shipment.carrier_name}
+            </span>
+            <span style={{
+              fontSize: "0.6rem", fontWeight: 700, padding: "2px 7px", borderRadius: 9999,
+              border: `1px solid ${color}`, color, display: "inline-block", alignSelf: "flex-start",
+            }}>
+              {statusLabel(shipment.status)}
+            </span>
             {shipment.part_criticality !== "STANDARD" && shipment.part_criticality !== "LOW" && (
-              <p className="text-xs font-semibold text-sky-300">⚡ {shipment.part_criticality}</p>
+              <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--signal-amber)" }}>
+                {shipment.part_criticality}
+              </span>
             )}
           </div>
         </Popup>
@@ -96,26 +94,34 @@ function PulsingMarker({ shipment, selected, onSelect }: { shipment: Shipment; s
   );
 }
 
-export function ShipmentMap({ shipments, selectedId, onSelect }: Props) {
+export function ShipmentMap({ shipments, selectedId, onSelect, theme = "dark" }: Props) {
   const positioned = shipments.filter((s) => s.current_lat != null && s.current_lng != null);
-  const selected = positioned.find((s) => s.shipment_id === selectedId);
+  const selected   = positioned.find((s) => s.shipment_id === selectedId);
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-slate-700/60 glass" style={{ height: 440 }}>
+    <div style={{ position: "relative", overflow: "hidden", borderRadius: 10, height: "100%", width: "100%" }}>
       {/* Map Legend */}
-      <div className="absolute bottom-4 left-4 z-[1000] glass rounded-lg px-3 py-2 space-y-1.5 text-[10px]">
-        <p className="text-slate-400 font-semibold uppercase tracking-wider mb-1">Legend</p>
+      <div style={{
+        position: "absolute", bottom: 16, left: 16, zIndex: 1000,
+        backgroundColor: "var(--bg-panel-raised)",
+        border: "1px solid var(--graphite-line)",
+        borderRadius: 8, padding: "8px 12px",
+        display: "flex", flexDirection: "column", gap: 5,
+      }}>
+        <span style={{ fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--silver-500)", marginBottom: 2 }}>
+          Legend
+        </span>
         {[
-          { color: "#ef4444", label: "High Risk (≥70%)" },
-          { color: "#f59e0b", label: "At Risk (40–69%)" },
-          { color: "#22c55e", label: "On Track (<40%)" },
+          { color: "#E5564A", label: "High Risk (≥70%)" },
+          { color: "#E0A23D", label: "At Risk (40–69%)" },
+          { color: "#3ECF8E", label: "On Track (<40%)" },
         ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
-            <span className="text-slate-300">{label}</span>
+          <div key={label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: color, flexShrink: 0 }} />
+            <span style={{ fontSize: "0.65rem", color: "var(--silver-700)" }}>{label}</span>
           </div>
         ))}
-        <div className="border-t border-slate-700 pt-1 mt-1 text-slate-400">
+        <div style={{ borderTop: "1px solid var(--graphite-line)", paddingTop: 5, marginTop: 2, fontSize: "0.62rem", color: "var(--silver-500)" }}>
           {positioned.length} shipments tracked
         </div>
       </div>
@@ -129,10 +135,14 @@ export function ShipmentMap({ shipments, selectedId, onSelect }: Props) {
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={
+            theme === "light"
+              ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+              : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          }
         />
 
-        {/* Route lines for all positioned shipments */}
+        {/* Route lines */}
         {positioned.map((s) => {
           const isSelected = s.shipment_id === selectedId;
           const color = riskColor(s.delay_risk_score);
@@ -143,32 +153,23 @@ export function ShipmentMap({ shipments, selectedId, onSelect }: Props) {
                 [s.origin_lat ?? s.current_lat!, s.origin_lng ?? s.current_lng!],
                 [s.current_lat!, s.current_lng!],
               ]}
-              pathOptions={{
-                color,
-                weight: isSelected ? 3 : 1.5,
-                opacity: isSelected ? 0.8 : 0.3,
-              }}
+              pathOptions={{ color, weight: isSelected ? 3 : 1.5, opacity: isSelected ? 0.8 : 0.3 }}
             />
           );
         })}
 
-        {/* Dashed future route line for selected shipment */}
+        {/* Future dashed route for selected */}
         {selected && (
           <Polyline
             positions={[
               [selected.current_lat!, selected.current_lng!],
               [selected.dest_lat ?? selected.current_lat!, selected.dest_lng ?? selected.current_lng!],
             ]}
-            pathOptions={{
-              color: riskColor(selected.delay_risk_score),
-              weight: 2,
-              opacity: 0.5,
-              dashArray: "8 6",
-            }}
+            pathOptions={{ color: riskColor(selected.delay_risk_score), weight: 2, opacity: 0.45, dashArray: "8 6" }}
           />
         )}
 
-        {/* Shipment markers */}
+        {/* Markers */}
         {positioned.map((s) => (
           <PulsingMarker
             key={s.shipment_id}
