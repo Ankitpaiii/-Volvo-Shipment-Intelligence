@@ -5,7 +5,7 @@
 
 ---
 
-## 📖 Overview
+## Overview
 
 The **Volvo Shipment Intelligence Platform** is a sophisticated, real-time supply chain dashboard designed to solve the "black box" problem of international and domestic freight tracking. Moving beyond simple point-A-to-point-B tracking, this platform introduces a **Gap Detection Engine** that proactively calculates delay risks, tracks per-milestone Service Level Agreements (SLAs), and alerts operators to supply chain anomalies *before* they result in line stoppages.
 
