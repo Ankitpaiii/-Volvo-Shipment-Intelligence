@@ -1,173 +1,194 @@
-# CampusFlow AI+ 🎓
-
-CampusFlow AI+ is an advanced, premium student productivity platform built for B.Tech students. It integrates student profiles, deadline tracking, RAG knowledge bases, persistent multi-mode AI chat workspaces, mock interviews with browser voice input, startup idea validators, and background n8n automation pipelines to manage calendar schedules and WhatsApp timed alerts.
-
----
-
-## Key Features
-
-- [x] **Secure JWT Student Auth**: Signup & login with Supabase Auth + metadata mapping (branch, year, phone, subjects, and Google Account email).
-- [x] **Dynamic Deadline Tracker**: CRUD operations for tasks, automatic UTC reminder calculations, and background webhook integrations.
-- [x] **Smart Study Planner**: AI partitions studying blocks and schedules them on Google Calendar & Twilio WhatsApp reminders using n8n.
-- [x] **Interactive MCQ Quiz Mode**: AI parses lecture notes to generate live multiple-choice questions with answer tracking and weak topic detection.
-- [x] **AI Chat Hub**: Multi-mode persistent chat (Study AI, Placement Coach, Startup Mentor, Creator Advisor, General Bot) with Web Speech API dictation support.
-- [x] **RAG Knowledge Base**: Upload PDFs, extract text, chunk content, generate local 384-dimensional semantic embeddings, and run matching vector search.
-- [x] **BrainSpace Startup Hub**: SWOT mapping, TAM/SAM/SOM market forecasts, scorecards (viability/risk), and print-ready report generators.
-- [x] **Placement Prep Dojo**: ATS resume keyword auditing, original DSA question setter (hints, complexities, solutions), and voice-enabled mock interviews.
-- [x] **Study Group Scheduler**: Group study coordinator with AI matchmaking to find optimal classmates based on shared subjects and schedules.
-- [x] **Automations Logs Audit**: Tracks logs for WhatsApp notices, calendar synchronizations, quiz reminders, and startup checks.
-- [x] **Responsive Premium UI**: Glassmorphic styling, Outfitters modern typography, micro-animations, and localStorage-persisted dark mode.
+<div align="center">
+  <h1>Volvo Shipment Intelligence Platform</h1>
+  <p><strong>A Next-Generation Freight Tracking & Proactive Exception Management System</strong></p>
+</div>
 
 ---
 
-## Tech Stack
+## 📖 Overview
 
-| Layer | Technology / Package | Notes |
-|---|---|---|
-| **Frontend** | React, Vite, Tailwind CSS, React Hook Form, Axios, Lucide React, React Hot Toast | Responsive layouts & dark mode |
-| **Backend** | Node.js, Express, Multer, PDF-Parse, CORS, Dotenv, Axios | REST API (port 3001) |
-| **Database & Auth** | Supabase (PostgreSQL, Supabase Auth) | JS Client v2 (RLS Guarded) |
-| **AI Processing** | Groq SDK (`groq-sdk`) | Model: `llama3-8b-8192` ONLY |
-| **Automation Engine** | n8n Cloud | Webhook triggered workflows |
-| **Voice Input** | Web Speech API | Native browser speech recognition |
-| **Citations Vector DB** | pgvector / JS Cosine Similarity | local 384-dimensional projection vectors |
+The **Volvo Shipment Intelligence Platform** is a sophisticated, real-time supply chain dashboard designed to solve the "black box" problem of international and domestic freight tracking. Moving beyond simple point-A-to-point-B tracking, this platform introduces a **Gap Detection Engine** that proactively calculates delay risks, tracks per-milestone Service Level Agreements (SLAs), and alerts operators to supply chain anomalies *before* they result in line stoppages.
+
+### The Business Value
+In JIT (Just-In-Time) and JIS (Just-In-Sequence) manufacturing, a delayed truck or a missing customs document can cost thousands of dollars per minute in line stoppages. This platform transitions operations from **reactive firefighting** to **proactive management** by automatically flagging high-risk shipments, enforcing carrier compliance, and providing an AI Copilot to answer complex logistical questions instantly.
 
 ---
 
-## Quick Start
+## ✨ Core Capabilities
 
-### 1. Database Setup
-1. Execute `supabase_schema.sql` in the Supabase SQL Editor to initialize tables, enable RLS, and set up access policies.
-2. Execute `supabase_migration_aiplus.sql` in the Supabase SQL Editor to append vectors, chat sessions, knowledge files, study groups, startup audits, and updated logs constraints.
+### 1. 🧠 Gap Detection & Risk Scoring Engine
+A continuous background worker that analyzes the health of every active shipment:
+- **Milestone SLA Tracking:** Flags shipments if specific milestones (e.g., `PICKUP_COMPLETED`, `GATE_ARRIVAL`) are not met within expected time windows.
+- **Carrier Compliance Penalty:** Automatically penalizes the health score of shipments where the carrier failed to provide mandatory updates.
+- **GPS Anomaly Detection:** Flags shipments if the GPS signal goes stale (>45 mins) or if consecutive signal gaps suggest telematics device tampering or failure.
+- **Criticality Weighting:** Applies heavier risk multipliers to `JIT` and `JIS` shipments compared to `STANDARD` freight.
 
-### 2. Configure Environment Variables
-Copy `backend/.env.example` to `backend/.env` and update the properties:
-```env
-PORT=3001
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key-here
-GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxx
-N8N_DEADLINE_WEBHOOK=https://your-n8n.cloud/webhook/deadline
-N8N_NOTICE_WEBHOOK=https://your-n8n.cloud/webhook/notice
-N8N_QUIZ_WEBHOOK=https://your-n8n.cloud/webhook/quiz
-N8N_STUDY_REMINDER_WEBHOOK=https://your-n8n.cloud/webhook/study-reminder
-N8N_ATTENDANCE_ALERT_WEBHOOK=https://your-n8n.cloud/webhook/attendance-alert
-N8N_PLACEMENT_WEBHOOK=https://your-n8n.cloud/webhook/placement
-N8N_STUDY_GROUP_WEBHOOK=https://your-n8n.cloud/webhook/study-group
-TWILIO_WA_FROM=+14155238886
+### 2. ⚡ Real-Time Operations (SSE Push)
+Unlike legacy dashboards that require manual refreshes, this platform utilizes **Server-Sent Events (SSE)**. As the background simulator generates new GPS pings or the Gap Engine uncovers new exceptions, they are pushed instantly to the frontend.
+- **Pulsing Risk Radars:** Map markers for at-risk shipments pulse in real-time.
+- **Instant Alerts:** P1 (Critical) exceptions slide into the Exception Queue with a red flash without a page reload.
+
+### 3. 🤖 AI Supply Chain Copilot
+Powered by **Anthropic Claude 3.5**, the copilot has full context of the live database. 
+- Ask natural language questions like: *"Which JIT shipments to Gothenburg are at risk today?"* or *"How is DHL Freight performing this week?"*
+- Maintains conversation history for follow-up questions.
+- Injects live ETA, confidence scores, and missing milestone data into the prompt for hyper-accurate answers.
+
+### 4. 📊 Executive Analytics Dashboard
+A dedicated view for supply chain managers to assess network health:
+- **OTIF (On-Time In-Full) & On-Time Pickup Tracking.**
+- **Carrier Scorecards:** Sortable tables showing compliance rates, on-time delivery rates, and P1 exception counts per carrier.
+- **Lane Performance:** Identifies the riskiest transit corridors (e.g., *Mumbai → Gothenburg*) and their average milestone completeness.
+
+---
+
+## 🏗️ System Architecture & Data Flow
+
+```mermaid
+graph TD
+    %% Frontend Components
+    subgraph Frontend [React / Tailwind Frontend]
+        UI[Glassmorphism Dashboard]
+        Map[Leaflet Live Map]
+        Copilot[Claude AI Copilot]
+        Exec[Executive Analytics]
+    end
+
+    %% Backend Components
+    subgraph Backend [FastAPI Backend]
+        API[REST API Routes]
+        SSE[SSE Stream /api/v1/stream]
+        LLM[Anthropic Integration Service]
+        
+        subgraph Background_Workers [Async Background Workers]
+            Simulator[GPS & Telematics Simulator]
+            Engine[Gap Detection Engine]
+        end
+    end
+
+    %% Database
+    subgraph Database [SQLite DB]
+        DB[(volvo_shipments.db)]
+    end
+
+    %% Flow Connections
+    UI -- "1. Initial Load (REST)" --> API
+    API <--> DB
+    
+    Copilot -- "2. Natural Language Query" --> LLM
+    LLM -- "3. Fetch Live Context" --> DB
+    
+    Simulator -- "4. Simulates Movement & Stalls" --> DB
+    Engine -- "5. Scans for Breaches & Risks" --> DB
+    
+    Simulator -- "6a. Push GPS Updates" --> SSE
+    Engine -- "6b. Push New Exceptions" --> SSE
+    SSE -- "7. Real-Time UI Update" --> UI
+    SSE -- "7. Pulse Map Markers" --> Map
 ```
 
-### 3. Run the Application
-From the root project directory:
+### Component Breakdown
+1. **Frontend (`/frontend`)**: Built with React, Vite, and Tailwind CSS. Uses heavy custom CSS properties (`index.css`) to achieve a premium "glassmorphism" aesthetic with deep Volvo-branded colors.
+2. **Backend (`/backend`)**: A robust FastAPI application utilizing SQLAlchemy ORM. 
+3. **Database**: Currently utilizes SQLite for zero-configuration hackathon deployment, but the SQLAlchemy ORM makes it trivially portable to PostgreSQL.
+
+---
+
+## 🚀 Installation & Setup Guide
+
+Follow these steps to run the platform locally on your machine.
+
+### Prerequisites
+- Node.js (v18 or higher)
+- Python (3.10 or higher)
+- An Anthropic API Key (for the Copilot)
+
+### Step 1: Backend Setup
+Open a terminal and navigate to the backend directory:
 ```bash
-# Install root dependencies
+cd backend
+```
+
+Create and activate a Python virtual environment:
+```bash
+# Windows
+python -m venv venv
+.\venv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Install the required Python packages:
+```bash
+pip install -r requirements.txt
+```
+
+Create your environment file:
+1. Rename `.env.example` to `.env`.
+2. Open `.env` and add your Claude API key to `ANTHROPIC_API_KEY=your_key_here`.
+
+Start the FastAPI server:
+```bash
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+*Note: On the very first run, the system will automatically create `volvo_shipments.db` and securely seed it with 50 active shipments, historical milestones, and pre-calculated GPS routes.*
+
+### Step 2: Frontend Setup
+Open a **new** terminal and navigate to the frontend directory:
+```bash
+cd frontend
+```
+
+Install the Node modules:
+```bash
 npm install
+```
 
-# Install all sub-dependencies (backend & frontend)
-npm run install:all
-
-# Run backend and frontend concurrently
+Start the Vite development server:
+```bash
 npm run dev
 ```
-Open `http://localhost:3000` to interact with CampusFlow.
 
-### 4. n8n Automation Workflows Setup
-The application relies on n8n webhooks to automate WhatsApp alerts (via Twilio) and Google Calendar event scheduling. Create workflows in n8n listening to `POST` requests for the following endpoints configured in your `.env` file:
-
-*   **Deadline Reminder Webhook** (`N8N_DEADLINE_WEBHOOK`)
-    *   **Trigger**: Triggered when a new task is added with calendar integration enabled.
-    *   **Payload**: `{ studentName, phone, subject, taskTitle, deadline, reminderTime }`
-    *   **Action**: Creates a Google Calendar event for `deadline` and schedules a Twilio node to send a WhatsApp reminder to `phone` at `reminderTime`.
-*   **Notice Broadcast Webhook** (`N8N_NOTICE_WEBHOOK`)
-    *   **Trigger**: Triggered when college notices are uploaded and analyzed by AI.
-    *   **Payload**: `{ noticeText, aiSummary, eventTitle, eventDate, phoneList }`
-    *   **Action**: Iterates over `phoneList` to broadcast the AI-summarized notice via Twilio WhatsApp, and optionally creates a calendar event if `eventDate` is provided.
-*   **Quiz Ready Webhook** (`N8N_QUIZ_WEBHOOK`)
-    *   **Trigger**: Triggered when AI-generated quiz questions are prepared.
-    *   **Payload**: `{ studentName, phone, subject, topic, mcqCount }`
-    *   **Action**: Sends a Twilio WhatsApp message notifying the student that a quiz on `topic` is ready.
-*   **Study Planner Webhook** (`N8N_STUDY_REMINDER_WEBHOOK`)
-    *   **Trigger**: Triggered when a study plan is generated.
-    *   **Payload**: `{ studentName, phone, subject, deadline, studyPlan }`
-    *   **Action**: Creates Google Calendar events for the scheduled study sessions and sends a WhatsApp breakdown notification.
-*   **Attendance Alert Webhook** (`N8N_ATTENDANCE_ALERT_WEBHOOK`)
-    *   **Trigger**: Triggered when attendance drops below the 75% threshold.
-    *   **Payload**: `{ studentName, phone, subject, currentAttendance, riskLevel }`
-    *   **Action**: Sends an urgent warning to the student's WhatsApp.
-*   **Placement Prep Webhook** (`N8N_PLACEMENT_WEBHOOK`)
-    *   **Trigger**: Triggered when a mock interview or company tracking status is added.
-    *   **Payload**: `{ studentName, phone, companyName, role, interviewDate, roundName }`
-    *   **Action**: Syncs the interview date to Google Calendar and triggers a WhatsApp prep prompt.
-*   **Study Group Webhook** (`N8N_STUDY_GROUP_WEBHOOK`)
-    *   **Trigger**: Triggered when a study group is matched or created.
-    *   **Payload**: `{ creatorName, membersList, subject, groupTitle, scheduledAt }`
-    *   **Action**: Sends WhatsApp invites to all matched classmates in `membersList`.
+### Step 3: View the App
+Open your web browser and navigate to **[http://localhost:5173](http://localhost:5173)**.
 
 ---
 
-## API Endpoints
+## 🖥️ Usage Walkthrough
 
-### Authentication (Public)
-- **POST** `/api/auth/register` (body: `{ name, branch, year, phone, subjects[], email, password, google_email? }`)
-- **POST** `/api/auth/login` (body: `{ email, password }`)
+1. **Operations Tab:** 
+   - **Shipment List:** Use the search bar to filter by PO number, Supplier, or Carrier. Use the filter pills to isolate `AT_RISK` or `JIT` shipments.
+   - **Shipment Map:** Click any shipment in the list to highlight its full route on the Leaflet map. A dashed line represents the predicted future trajectory. High-risk shipments will feature a red, pulsing radar ring.
+   - **Detail Panel:** Once a shipment is selected, the right panel displays a circular ETA confidence gauge and a vertical milestone timeline indicating exactly which steps (e.g., *Dock Check-in*, *Customs Clearance*) have been completed.
+   - **Exception Queue:** Review P1 and P2 alerts generated by the Gap Detection Engine. Click an exception to expand it, view the root cause, and click **Approve Action** to log the system's recommended resolution.
 
-### Tasks & Deadlines (Protected)
-- **GET** `/api/tasks`
-- **POST** `/api/tasks` (body: `{ title, subject, deadline, add_to_calendar }`)
-- **PATCH** `/api/tasks/:id` (body: `{ status }`)
-- **DELETE** `/api/tasks/:id`
+2. **Executive Tab:** 
+   - View top-level network health, including the current OTIF percentage.
+   - Review Carrier Scorecards to see which transport providers are failing to meet compliance SLAs.
 
-### Smart Study Planner (Protected)
-- **POST** `/api/deadline-planner/study-plan` (body: `{ subject, deadline, difficulty, estimatedHours }`)
-
-### Chat Hub (Protected)
-- **POST** `/api/chat` (body: `{ message, mode, sessionId? }`)
-- **GET** `/api/chat/sessions`
-- **GET** `/api/chat/sessions/:id`
-- **DELETE** `/api/chat/sessions/:id`
-
-### RAG Knowledge Base (Protected)
-- **POST** `/api/knowledge/upload` (body: `file` [PDF], `category` ['academic','placement','startup'])
-- **GET** `/api/knowledge/documents`
-- **DELETE** `/api/knowledge/documents/:id`
-- **POST** `/api/knowledge/search` (body: `{ query, category?, limit? }`)
-
-### Placement Dojo & Tracker (Protected)
-- **GET** `/api/placement/companies`
-- **POST** `/api/placement/companies` (body: `{ company_name, role, status, notes, interview_rounds[] }`)
-- **PATCH** `/api/placement/companies/:id` (body: `{ company_name, role, status, notes, interview_rounds[] }`)
-- **DELETE** `/api/placement/companies/:id`
-- **POST** `/api/placement/dsa-problem` (body: `{ topic, difficulty }`)
-- **POST** `/api/placement/mock-interview` (body: `{ type, studentContext }`)
-- **POST** `/api/placement/evaluate-interview` (body: `{ questions[], answers[] }`)
-- **POST** `/api/placement/resume-analyze` (body: `{ resumeText, targetRole? }`)
-
-### Study Groups (Protected)
-- **GET** `/api/study-groups`
-- **POST** `/api/study-groups` (body: `{ subject, title, scheduled_at, max_members, invitees[] }`)
-- **POST** `/api/study-groups/:id/join`
-- **POST** `/api/study-groups/match`
-
-### BrainSpace Startup Hub (Protected)
-- **POST** `/api/brainspace/startup-validate` (body: `{ idea, problem, solution, targetAudience }`)
-- **GET** `/api/brainspace/reports`
-- **DELETE** `/api/brainspace/reports/:id`
-
-### AI Operations (Protected)
-- **POST** `/api/ai/tip`
-- **POST** `/api/ai/summarize` (body: `{ noticeText, phoneList? }`)
-- **POST** `/api/ai/flashcards` (body: `{ notes }`)
-- **POST** `/api/ai/attendance` (body: `{ attendanceData }`)
-- **POST** `/api/ai/mcq` (body: `{ notes, subject, topic, count? }`)
+3. **AI Copilot:** 
+   - Located in the bottom right of the Operations tab. Try clicking one of the suggested queries, or type: *"What is the status of PO 4500120035?"*
 
 ---
 
-## Troubleshooting
+## 📡 API Endpoints Overview
 
-### 1. `Error triggering n8n ... webhook: Request failed with status code 404`
-*   **Cause**: This happens when the backend attempts to send a webhook request to the placeholder URL configured in your `backend/.env` file (`https://your-n8n.app.n8n.cloud/webhook/...`), or if the workflow is not set to **Active** inside n8n.
-*   **Solution**:
-    1. Replace `https://your-n8n.app.n8n.cloud` in `backend/.env` with your actual n8n cloud or local host URL (e.g. `https://prajwal-vl.app.n8n.cloud`).
-    2. Ensure that you have toggled the workflow to **Active** inside your n8n dashboard.
-    3. **For Local Testing/Development**: If you are clicking "Listen for test event" in n8n, n8n changes the path from `/webhook/` to `/webhook-test/`. Temporarily update the URLs in your `backend/.env` file to use `/webhook-test/` (e.g., `https://prajwal-vl.app.n8n.cloud/webhook-test/deadline`). Remember to switch back to `/webhook/` once you activate the workflow for production.
+The backend exposes a fully documented Swagger UI. While the server is running, visit **http://localhost:8000/docs** to interact with the API.
 
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/v1/shipments` | GET | Paginated, sortable, and searchable list of shipments. |
+| `/api/v1/shipments/{id}/eta` | GET | Returns the predicted delivery time and confidence score. |
+| `/api/v1/exceptions` | GET | Lists all active exceptions ranked by business impact score. |
+| `/api/v1/reports/carrier-scorecards` | GET | Aggregates compliance and on-time data grouped by carrier. |
+| `/api/v1/stream` | GET | SSE stream that pushes JSON payloads on GPS updates or new alerts. |
+
+---
+
+## 🗺️ Future Roadmap (Production Readiness)
+While this MVP is fully functional, moving it to production would involve:
+1. **Database Migration:** Swapping SQLite for **PostgreSQL**.
+2. **Event Streaming:** Replacing the internal Python `asyncio.Queue` with **Apache Kafka** to handle millions of telematics pings.
+3. **Containerization:** Wrapping the frontend and backend in Docker containers and orchestrating via Kubernetes (Helm charts).

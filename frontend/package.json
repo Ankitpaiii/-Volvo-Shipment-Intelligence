@@ -1,35 +1,28 @@
 {
-  "name": "campusflow-frontend",
+  "name": "volvo-shipment-dashboard",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.43.4",
-    "axios": "^1.7.2",
-    "clsx": "^2.1.1",
-    "framer-motion": "^12.41.0",
-    "lucide-react": "^0.395.0",
+    "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-hook-form": "^7.51.5",
-    "react-hot-toast": "^2.4.1",
-    "react-parallax-tilt": "^1.7.333",
-    "react-router-dom": "^6.23.1",
-    "tailwind-merge": "^3.6.0"
+    "react-leaflet": "^4.2.1"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.0",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.3",
-    "vite": "^5.2.11"
+    "@types/leaflet": "^1.9.15",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
   }
 }
