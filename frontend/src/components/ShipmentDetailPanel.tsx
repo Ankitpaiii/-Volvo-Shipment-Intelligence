@@ -68,6 +68,7 @@ export function ShipmentDetailPanel({ shipment, events }: Props) {
     : null;
 
   function statusBadgeClass() {
+    if (!shipment) return "v-badge v-badge-muted";
     if (shipment.status === "AT_RISK" || shipment.status === "DELAYED") return "v-badge v-badge-amber";
     if (shipment.status === "DELIVERED") return "v-badge v-badge-green";
     return "v-badge v-badge-muted";

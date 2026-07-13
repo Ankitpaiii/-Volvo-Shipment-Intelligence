@@ -81,12 +81,13 @@ export interface ExtendedKPIs extends KPIs {
 
 export interface CarrierScorecard {
   carrier_name: string;
-  total_shipments: number;
+  shipment_count: number;
   at_risk_count: number;
   avg_risk_score: number;
-  on_time_rate: number;
+  otif_rate: number;
   compliance_rate: number;
-  p1_exception_count: number;
+  exception_rate: number;
+  avg_transit_days_variance: number;
 }
 
 export interface LanePerformance {
@@ -94,10 +95,11 @@ export interface LanePerformance {
   origin_city: string;
   dest_city: string;
   total_shipments: number;
-  avg_risk_score: number;
-  on_time_rate: number;
+  avg_delay_risk_score: number;
+  otif_rate: number;
   avg_milestone_completeness: number;
   active_exceptions: number;
+  dominant_carrier: string;
 }
 
 export type SSEEvent =
@@ -105,7 +107,7 @@ export type SSEEvent =
   | { type: "new_exception"; exception_id: string; shipment_id: string; exception_type: string; severity: string; message: string; business_impact_score: number }
   | { type: "gps_update"; count: number };
 
-const USE_MOCK = import.meta.env.VITE_USE_BACKEND !== "true";
+const USE_MOCK = false;
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -202,13 +204,19 @@ export const api = {
     });
   },
   copilotChat: async (question: string, sessionId = "default") => {
-    if (USE_MOCK) {
-      return { answer: "Based on the latest supply chain data, the shipment from Stuttgart (SHP-10492) is delayed due to severe weather near Hamburg. The JIT inventory at the Gothenburg plant is at risk. I recommend rerouting via rail corridor.", sources: ["Weather API", "Carrier Update", "Inventory DB"] };
+    try {
+      return await fetchJson<{ answer: string; sources: string[] }>("/api/v1/copilot/chat", {
+        method: "POST",
+        body: JSON.stringify({ question, session_id: sessionId }),
+      });
+    } catch (e) {
+      if (!USE_MOCK) throw e;
+      console.warn("Backend copilot API failed, using mock fallback:", e);
+      return { 
+        answer: "Based on the latest supply chain data, the shipment from Stuttgart (SHP-10492) is delayed due to severe weather near Hamburg. The JIT inventory at the Gothenburg plant is at risk. I recommend rerouting via rail corridor.", 
+        sources: ["Weather API", "Carrier Update", "Inventory DB"] 
+      };
     }
-    return fetchJson<{ answer: string; sources: string[] }>("/api/v1/copilot/chat", {
-      method: "POST",
-      body: JSON.stringify({ question, session_id: sessionId }),
-    });
   },
   getCarrierScorecards: async () => {
     if (USE_MOCK) return mockScorecards as CarrierScorecard[];

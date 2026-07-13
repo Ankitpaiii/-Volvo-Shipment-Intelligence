@@ -168,12 +168,12 @@ export function ExceptionQueue({ exceptions, onAction }: Props) {
                     )}
                     <div style={{ display: "flex", gap: 8 }}>
                       <button className="v-btn-ghost" style={{ flex: 1, fontSize: "0.68rem", padding: "6px 10px" }}
-                        onClick={() => handleAction(e.exception_id, "acknowledge", "Acknowledge")}>
+                        onClick={() => handleAction(e.exception_id, "acknowledge")}>
                         Acknowledge
                       </button>
                       {e.recommended_action && (
                         <button className="v-btn-ghost" style={{ flex: 1, fontSize: "0.68rem", padding: "6px 10px", color: "var(--silver-700)", borderColor: "var(--silver-700)" }}
-                          onClick={() => handleAction(e.exception_id, "approve_recommendation", "Approve")}>
+                          onClick={() => handleAction(e.exception_id, "approve_recommendation")}>
                           Approve Action
                         </button>
                       )}

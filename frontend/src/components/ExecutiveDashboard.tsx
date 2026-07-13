@@ -47,7 +47,7 @@ export function ExecutiveDashboard({ extKpis }: Props) {
       {extKpis && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
           {[
-            { label: "Pending Actions",   value: extKpis.pending_actions ?? 0,        color: "var(--platinum-100)" },
+            { label: "Pending Actions",   value: extKpis.open_exceptions ?? 0,        color: "var(--platinum-100)" },
             { label: "Avg Dwell (hrs)",   value: extKpis.avg_dwell_hours?.toFixed(1) ?? "—", color: Number(extKpis.avg_dwell_hours) >= 6 ? "var(--signal-red)" : Number(extKpis.avg_dwell_hours) >= 3 ? "var(--signal-amber)" : "var(--signal-green)" },
             { label: "Carrier Compliance",value: `${extKpis.carrier_compliance_pct ?? 0}%`, color: complianceColor(extKpis.carrier_compliance_pct ?? 0) },
           ].map(({ label, value, color }) => (

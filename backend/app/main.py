@@ -76,10 +76,10 @@ async def background_worker():
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
-    try:
-        seed_database(db)
-    finally:
-        db.close()
+    # try:
+    #     seed_database(db)
+    # finally:
+    #     db.close()
     task = asyncio.create_task(background_worker())
     yield
     task.cancel()

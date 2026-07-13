@@ -32,9 +32,8 @@ export function CopilotChat() {
     setLoading(true);
 
     try {
-      const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
-      const res = await api.chat(history);
-      setMessages((prev) => [...prev, { role: "assistant", content: res.response }]);
+      const res = await api.copilotChat(query);
+      setMessages((prev) => [...prev, { role: "assistant", content: res.answer }]);
     } catch {
       setMessages((prev) => [...prev, {
         role: "assistant",
