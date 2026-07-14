@@ -96,11 +96,12 @@ export function CopilotChat() {
             <div key={i} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", gap: 8 }} className="v-animate">
               {!isUser && (
                 <div style={{
-                  width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-                  background: "linear-gradient(145deg, #4A4C52, #0F1012)",
-                  border: "1px solid var(--graphite-line)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
+                width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+                background: "linear-gradient(145deg, #6A6D78 0%, #3A3D47 45%, #0F1014 100%)",
+                border: "1px solid var(--chrome-shadow)",
+                boxShadow: "0 0 0 1px var(--chrome-shadow), 0 0 6px rgba(180,183,196,0.2)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--silver-700)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
@@ -139,8 +140,9 @@ export function CopilotChat() {
           <div style={{ display: "flex", gap: 8 }} className="v-animate">
             <div style={{
               width: 28, height: 28, borderRadius: "50%",
-              background: "linear-gradient(145deg, #4A4C52, #0F1012)",
-              border: "1px solid var(--graphite-line)",
+              background: "linear-gradient(145deg, #6A6D78 0%, #3A3D47 45%, #0F1014 100%)",
+              border: "1px solid var(--chrome-shadow)",
+              boxShadow: "0 0 0 1px var(--chrome-shadow), 0 0 6px rgba(180,183,196,0.2)",
               display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
             }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--silver-700)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

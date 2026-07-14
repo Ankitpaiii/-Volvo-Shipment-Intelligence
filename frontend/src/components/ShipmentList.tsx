@@ -127,6 +127,7 @@ export function ShipmentList({ shipments, selectedId, onSelect }: Props) {
               <button
                 key={s.shipment_id}
                 onClick={() => onSelect(s.shipment_id)}
+                className={isSelected ? "v-row-selected" : ""}
                 style={{
                   width: "100%",
                   display: "block",
@@ -135,8 +136,8 @@ export function ShipmentList({ shipments, selectedId, onSelect }: Props) {
                   borderBottom: "1px solid var(--graphite-line)",
                   cursor: "pointer",
                   backgroundColor: isSelected ? "var(--bg-panel-raised)" : "transparent",
-                  borderLeft: isSelected ? `3px solid ${color}` : "3px solid transparent",
-                  transition: "background-color 0.15s ease",
+                  borderLeft: isSelected ? `3px solid var(--signal-amber)` : "3px solid transparent",
+                  transition: "background-color 0.15s ease, box-shadow 0.2s ease",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>

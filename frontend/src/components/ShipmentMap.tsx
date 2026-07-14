@@ -8,10 +8,16 @@ import {
 } from "react-leaflet";
 import type { Shipment } from "../api/client";
 
-function riskColor(score: number): string {
-  if (score >= 70) return "#E5564A";   // signal-red dark / #C7362B light
-  if (score >= 40) return "#E0A23D";   // signal-amber
-  return "#3ECF8E";                    // signal-green
+function riskColor(score: number, theme: "light" | "dark" = "dark"): string {
+  if (theme === "light") {
+    if (score >= 70) return "#C026D3";   // deep magenta — critical
+    if (score >= 40) return "#7C3AED";   // deep violet — caution
+    return "#0891B2";                    // deep teal-cyan — nominal
+  }
+  // Dark mode: UNHOLY TAINTED — deep dark, no pastels
+  if (score >= 70) return "#B91C3C";   // blood rose crimson — critical
+  if (score >= 40) return "#6B21A8";   // poison violet — caution
+  return "#0E7490";                    // abyss teal — nominal
 }
 
 function statusLabel(status: string): string {
@@ -33,9 +39,9 @@ interface Props {
   theme?: "light" | "dark";
 }
 
-function PulsingMarker({ shipment, selected, onSelect }: { shipment: Shipment; selected: boolean; onSelect: () => void }) {
+function PulsingMarker({ shipment, selected, onSelect, theme = "dark" }: { shipment: Shipment; selected: boolean; onSelect: () => void; theme?: "light" | "dark" }) {
   const isPulsing = shipment.status === "AT_RISK" || shipment.status === "DELAYED";
-  const color     = riskColor(shipment.delay_risk_score);
+  const color     = riskColor(shipment.delay_risk_score, theme);
   const radius    = selected ? 11 : 7;
 
   return (
@@ -51,7 +57,7 @@ function PulsingMarker({ shipment, selected, onSelect }: { shipment: Shipment; s
         center={[shipment.current_lat!, shipment.current_lng!]}
         radius={radius}
         pathOptions={{
-          color: selected ? "#F4F5F7" : color,
+          color: selected ? "#EDEEF3" : color,
           fillColor: color,
           fillOpacity: 0.9,
           weight: selected ? 3 : 1.5,
@@ -112,9 +118,9 @@ export function ShipmentMap({ shipments, selectedId, onSelect, theme = "dark" }:
           Legend
         </span>
         {[
-          { color: "#E5564A", label: "High Risk (≥70%)" },
-          { color: "#E0A23D", label: "At Risk (40–69%)" },
-          { color: "#3ECF8E", label: "On Track (<40%)" },
+          { color: theme === "light" ? "#C026D3" : "#B91C3C", label: "High Risk (≥70%)" },
+          { color: theme === "light" ? "#7C3AED" : "#6B21A8", label: "At Risk (40–69%)" },
+          { color: theme === "light" ? "#0891B2" : "#0E7490", label: "On Track (<40%)" },
         ].map(({ color, label }) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: color, flexShrink: 0 }} />
@@ -145,7 +151,7 @@ export function ShipmentMap({ shipments, selectedId, onSelect, theme = "dark" }:
         {/* Route lines */}
         {positioned.map((s) => {
           const isSelected = s.shipment_id === selectedId;
-          const color = riskColor(s.delay_risk_score);
+          const color = riskColor(s.delay_risk_score, theme);
           return (
             <Polyline
               key={`route-${s.shipment_id}`}
@@ -165,7 +171,7 @@ export function ShipmentMap({ shipments, selectedId, onSelect, theme = "dark" }:
               [selected.current_lat!, selected.current_lng!],
               [selected.dest_lat ?? selected.current_lat!, selected.dest_lng ?? selected.current_lng!],
             ]}
-            pathOptions={{ color: riskColor(selected.delay_risk_score), weight: 2, opacity: 0.45, dashArray: "8 6" }}
+            pathOptions={{ color: riskColor(selected.delay_risk_score, theme), weight: 2, opacity: 0.45, dashArray: "8 6" }}
           />
         )}
 
@@ -176,6 +182,7 @@ export function ShipmentMap({ shipments, selectedId, onSelect, theme = "dark" }:
             shipment={s}
             selected={s.shipment_id === selectedId}
             onSelect={() => onSelect(s.shipment_id)}
+            theme={theme}
           />
         ))}
       </MapContainer>
