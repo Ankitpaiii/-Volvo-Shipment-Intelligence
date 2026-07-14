@@ -25,20 +25,20 @@ export function VolvoLogo({ size = 36 }: { size?: number }) {
           <stop offset="50%"  stopColor="#F4F5F7" />
           <stop offset="100%" stopColor="#B7B9BE" />
         </linearGradient>
-        {/* Light theme versions */}
+        {/* Light theme versions — Nordic metallic blue */}
         <radialGradient id="vring-l" cx="38%" cy="32%" r="70%">
-          <stop offset="0%"   stopColor="#FFFFFF" />
-          <stop offset="45%"  stopColor="#C7C9CF" />
-          <stop offset="100%" stopColor="#33353A" />
+          <stop offset="0%"   stopColor="#EEF6FC" />  {/* ice specular */}
+          <stop offset="40%"  stopColor="#8AAABF" />  {/* steel blue mid */}
+          <stop offset="100%" stopColor="#1A3A52" />  {/* deep navy */}
         </radialGradient>
         <radialGradient id="vfill-l" cx="40%" cy="35%" r="65%">
-          <stop offset="0%"   stopColor="#FFFFFF" />
-          <stop offset="100%" stopColor="#E8E9EC" />
+          <stop offset="0%"   stopColor="#DAE7F0" />  {/* pale blue-white */}
+          <stop offset="100%" stopColor="#B8CAD8" />  {/* muted steel blue */}
         </radialGradient>
         <linearGradient id="varrow-l" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%"   stopColor="#33353A" />
-          <stop offset="50%"  stopColor="#111214" />
-          <stop offset="100%" stopColor="#6B6D73" />
+          <stop offset="0%"   stopColor="#1A3A52" />  {/* dark navy */}
+          <stop offset="50%"  stopColor="#0E1E2E" />  {/* deepest navy */}
+          <stop offset="100%" stopColor="#3A6080" />  {/* blue-steel */}
         </linearGradient>
       </defs>
 

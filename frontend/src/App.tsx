@@ -270,8 +270,9 @@ export default function App() {
                 <div style={{ textAlign: "center", marginBottom: 24, flexShrink: 0 }}>
                   <div style={{
                     width: 48, height: 48, borderRadius: "50%",
-                    background: "linear-gradient(145deg, #4A4C52, #0F1012)",
-                    border: "1px solid var(--graphite-line)",
+                    background: "linear-gradient(145deg, #6A6D78 0%, #3A3D47 45%, #0F1014 100%)",
+                    border: "1px solid var(--chrome-shadow)",
+                    boxShadow: "0 0 0 1px var(--chrome-shadow), 0 0 10px rgba(180,183,196,0.2)",
                     display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 12,
                   }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--silver-700)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -297,7 +298,7 @@ export default function App() {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`v-card v-animate${toast.severity === "P1" ? " v-p1-pulse" : ""}`}
+            className={`v-card v-toast-animate${toast.severity === "P1" ? " v-p1-pulse" : ""}`}
             style={{ maxWidth: 320, pointerEvents: "all", cursor: "pointer" }}
             onClick={() => dismissToast(toast.id)}
           >

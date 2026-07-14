@@ -10,38 +10,73 @@
    Only red/amber/green for shipment risk status.
    ══════════════════════════════════════════════════════════ */
 
-/* ── DARK THEME (default) ── */
+/* ── DARK THEME (default) — HEAVY SILVER EDITION ── */
 :root {
-  --bg-void:             #050505;
-  --bg-void-line:        #0C0D0F;
-  --bg-panel:            #0F1012;
-  --bg-panel-raised:     #18191C;
-  --panel-edge:          #232427;
-  --graphite-line:       #2A2B2E;
-  --platinum-100:        #E8E9EC;
-  --silver-500:          #8E9095;
-  --silver-700:          #B7B9BE;
-  --chrome-highlight:    #F4F5F7;
-  --signal-red:          #E5564A;
-  --signal-amber:        #E0A23D;
-  --signal-green:        #3ECF8E;
+  /* Backgrounds — lifted with silver undertone */
+  --bg-void:             #06060A;
+  --bg-void-line:        #0E0F14;
+  --bg-panel:            #111318;
+  --bg-panel-raised:     #1C1E24;
+  --panel-edge:          #2C2E35;
+  --graphite-line:       #3A3D47;
+
+  /* Silver / Chrome palette — much more vivid */
+  --platinum-100:        #EDEEF3;
+  --silver-300:          #D6D8DF;
+  --silver-500:          #A0A3AD;
+  --silver-700:          #C8CAD2;
+  --chrome-highlight:    #F8F9FB;
+  --chrome-specular:     #FFFFFF;
+  --chrome-mid:          #B0B3BC;
+  --chrome-shadow:       #4A4D58;
+
+  /* Signal colors — UNHOLY TAINTED. Deep dark. No pastels. */
+  --signal-red:          #B91C3C;   /* blood rose crimson — deep dark rose-red */
+  --signal-amber:        #6B21A8;   /* poison violet — bruised toxic purple */
+  --signal-green:        #0E7490;   /* abyss teal — deep ocean dark */
+
+  /* Silver glow accents */
+  --silver-glow-soft:    rgba(180, 183, 196, 0.08);
+  --silver-glow-mid:     rgba(200, 202, 210, 0.15);
+  --silver-glow-strong:  rgba(232, 233, 238, 0.22);
 }
 
-/* ── LIGHT THEME ── */
+/* ── LIGHT THEME — NORDIC METALLIC BLUE ── */
+/* Inspired by brushed steel-blue Volvo paint: #7090A8 midtone */
 .light {
-  --bg-void:             #E8E9EC;
-  --bg-void-line:        #DEDFE3;
-  --bg-panel:            #F6F7F9;
-  --bg-panel-raised:     #FFFFFF;
-  --panel-edge:          #EDEEF1;
-  --graphite-line:       #C7C9CF;
-  --platinum-100:        #0A0B0D;
-  --silver-500:          #6B6D73;
-  --silver-700:          #33353A;
-  --chrome-highlight:    #111214;
-  --signal-red:          #C7362B;
-  --signal-amber:        #B5740E;
-  --signal-green:        #1F8F5C;
+  /* Backgrounds — cool steel-blue foundation */
+  --bg-void:             #B8CAD8;   /* muted steel blue base */
+  --bg-void-line:        #AABFCE;   /* slightly deeper blue stripe */
+  --bg-panel:            #C8D8E4;   /* light blue-steel panel */
+  --bg-panel-raised:     #DAE7F0;   /* pale blue-white card */
+  --panel-edge:          #AABFCF;   /* blue-grey divider */
+  --graphite-line:       #8AAABF;   /* steel blue border */
+
+  /* Ink / Navy — cool deep tones for text */
+  --platinum-100:        #122030;   /* deep navy ink */
+  --silver-300:          #4A6878;   /* medium blue-steel */
+  --silver-500:          #3A5868;   /* blue-grey text */
+  --silver-700:          #0E1E2E;   /* near-black navy */
+  --chrome-highlight:    #0E1E2E;   /* inverted: dark navy */
+  --chrome-specular:     #EEF4F8;   /* inverted: pale ice */
+  --chrome-mid:          #6A88A0;   /* blue-grey mid */
+  --chrome-shadow:       #98B2C4;   /* cool blue-steel shadow */
+
+  /* Signal colors — zero red/green/yellow. Cool-on-blue tricolor. */
+  --signal-red:          #C026D3;   /* deep magenta: critical on blue bg */
+  --signal-amber:        #7C3AED;   /* deep violet: caution on blue bg */
+  --signal-green:        #0891B2;   /* deep teal-cyan: nominal on blue bg */
+
+  /* Blue-steel glow accents */
+  --silver-glow-soft:    rgba(74, 104, 120, 0.08);
+  --silver-glow-mid:     rgba(58, 88, 104, 0.15);
+  --silver-glow-strong:  rgba(14, 30, 46, 0.22);
+
+  /* Glassmorphism tokens — frosted steel-blue glass */
+  --glass-bg:            rgba(218, 231, 240, 0.70);
+  --glass-border:        rgba(138, 170, 191, 0.55);
+  --glass-blur:          14px;
+  --glass-shadow:        0 4px 28px rgba(14, 30, 46, 0.16), 0 1px 5px rgba(14, 30, 46, 0.09);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -121,6 +156,20 @@ body {
   border-radius: 0 6px 6px 0;
 }
 
+/* Light mode: metallic blue glow on active nav item */
+.light .v-nav-item.active {
+  color: var(--chrome-specular);
+  background: linear-gradient(135deg, #1E3A52 0%, #0E1E2E 100%);
+  border-left: 3px solid #6AAAD0;
+  box-shadow: 3px 0 16px rgba(100, 160, 210, 0.28), inset 0 0 0 1px rgba(100,160,210,0.15);
+}
+
+/* Light mode: hover with cool blue tint */
+.light .v-nav-item:hover {
+  color: var(--silver-700);
+  background-color: rgba(58, 88, 104, 0.10);
+}
+
 /* ── HEADER ── */
 .v-header {
   background-color: var(--bg-panel);
@@ -140,8 +189,22 @@ body {
   border: 1px solid var(--graphite-line);
   border-top: 1px solid var(--panel-edge);
   border-radius: 10px;
-  transition: border-color 0.18s ease;
+  transition: border-color 0.18s ease, box-shadow 0.25s ease;
   overflow: hidden;
+  /* Subtle depth inner shadow — machined pocket feel */
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.06);
+}
+
+/* Glassmorphism in light mode */
+.light .v-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 -1px 0 rgba(90,80,65,0.05);
+}
+.light .v-card:hover {
+  box-shadow: var(--glass-shadow), 0 8px 32px rgba(90, 80, 65, 0.16), inset 0 -1px 0 rgba(90,80,65,0.05);
 }
 
 /* Card header row */
@@ -155,8 +218,9 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(145deg, #4A4C52, #0F1012);
-  border: 1px solid var(--graphite-line);
+  background: linear-gradient(145deg, #6A6D78 0%, #3A3D47 40%, #0F1014 100%);
+  border: 1px solid var(--chrome-shadow);
+  box-shadow: 0 0 0 1px var(--chrome-shadow), 0 0 8px rgba(180,183,196,0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,8 +228,9 @@ body {
 }
 
 .light .v-logo-badge {
-  background: linear-gradient(145deg, #FFFFFF, #D5D7DC);
+  background: linear-gradient(145deg, #FFFFFF 0%, #E2E4EC 50%, #C4C7D2 100%);
   border-color: var(--graphite-line);
+  box-shadow: 0 0 0 1px var(--chrome-shadow), 0 0 6px rgba(100,103,115,0.15);
 }
 
 /* ── STATUS / LIVE PILL ── */
@@ -249,15 +314,24 @@ body {
   font-size: 0.75rem;
   padding: 8px 12px 8px 32px;
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .v-input::placeholder {
   color: var(--silver-500);
 }
 
+/* Dark mode: silver shimmer focus ring */
 .v-input:focus {
   border-color: var(--silver-700);
+  box-shadow: 0 0 0 2px rgba(200, 202, 210, 0.15), 0 0 0 1px var(--silver-700);
+}
+
+/* Light mode: warm amber-ink focus ring */
+.light .v-input:focus {
+  border-color: var(--silver-700);
+  box-shadow: 0 0 0 2px rgba(112, 104, 96, 0.18), 0 0 0 1px var(--silver-700);
+  background-color: var(--bg-panel-raised);
 }
 
 /* ── BUTTON PRIMARY (inverted) ── */
@@ -414,12 +488,46 @@ body {
 
 .v-animate { animation: fadeSlide 0.2s ease forwards; }
 
+/* Toast: spring slide-in from bottom-right */
+@keyframes toastSlideIn {
+  0%   { opacity: 0; transform: translateX(40px) scale(0.95); }
+  60%  { transform: translateX(-4px) scale(1.01); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+.v-toast-animate {
+  animation: toastSlideIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 @keyframes p1pulse {
-  0%, 100% { border-color: var(--signal-red); }
-  50%       { border-color: var(--graphite-line); }
+  0%, 100% {
+    border-color: var(--signal-red);
+    box-shadow: 0 0 0 2px rgba(185, 28, 60, 0.25),
+                0 0 12px rgba(185, 28, 60, 0.15);
+  }
+  50% {
+    border-color: var(--graphite-line);
+    box-shadow: none;
+  }
 }
 
 .v-p1-pulse { animation: p1pulse 1.6s ease-in-out infinite; }
+
+/* Shipment row selection glow */
+.v-row-selected {
+  box-shadow: inset 3px 0 0 var(--signal-amber), inset 0 0 0 1px rgba(200,202,210,0.06);
+  background-color: var(--bg-panel-raised) !important;
+}
+.light .v-row-selected {
+  box-shadow: inset 3px 0 0 #6AAAD0, 2px 0 18px rgba(100, 160, 210, 0.18);
+  background-color: rgba(106, 170, 208, 0.07) !important;
+}
+
+/* KPI counter shimmer on hover */
+.v-kpi-value {
+  transition: color 0.2s ease;
+  cursor: default;
+  user-select: none;
+}
 
 /* ══════════════════════════════════════════════════════════
    VOLVO METALLIC WORDMARK
@@ -444,15 +552,16 @@ body {
   background: linear-gradient(
     180deg,
     #FFFFFF  0%,
-    #EAECEF  8%,
-    #C8CDD4 20%,
-    #8E9095 32%,
-    #4A4D53 44%,
-    #070708 50%,
-    #4A4D53 56%,
-    #8E9095 64%,
-    #C8CDD4 76%,
-    #EAECEF 88%,
+    #F0F2F6  5%,
+    #D8DCE4 12%,
+    #B8BCC6 22%,
+    #A0A3AD 32%,
+    #6A6D78 42%,
+    #3A3D47 50%,
+    #6A6D78 58%,
+    #A0A3AD 66%,
+    #C8CAD2 78%,
+    #EDEEF3 90%,
     #FFFFFF 100%
   );
   background-size: 100% 300%;
@@ -461,27 +570,27 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 
-  /* Depth shadow — makes strokes feel physically raised */
-  filter: drop-shadow(0px 1px 0px #000000) drop-shadow(0px -1px 0px #E8E9EC);
+  /* Depth shadow — stronger chrome depth */
+  filter: drop-shadow(0px 1px 0px #000000) drop-shadow(0px -1px 1px #C8CAD2) drop-shadow(0 0 4px rgba(200,202,210,0.3));
 
   animation: volvoShimmer 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
 }
 
-/* Light theme: deep steel gradient, still sharp */
+/* Light theme: Nordic metallic blue — steel panel gloss */
 .light .v-volvo-wordmark {
   background: linear-gradient(
     180deg,
-    #0A0B0D  0%,
-    #1E2024  8%,
-    #33353A 20%,
-    #6B6D73 32%,
-    #9EA0A6 44%,
-    #F0F1F3 50%,
-    #9EA0A6 56%,
-    #6B6D73 64%,
-    #33353A 76%,
-    #1E2024 88%,
-    #0A0B0D 100%
+    #EEF6FC  0%,     /* ice specular top */
+    #C8E0EE  6%,
+    #A0C4D8 16%,
+    #6A90A8 28%,
+    #3A6080 40%,
+    #1A3A52 50%,     /* deep navy shadow valley */
+    #3A6080 60%,
+    #6A90A8 72%,
+    #A0C4D8 84%,
+    #C8E0EE 94%,
+    #EEF6FC 100%     /* ice specular bottom */
   );
   background-size: 100% 300%;
   background-position: 0% 15%;
@@ -489,7 +598,7 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 
-  filter: drop-shadow(0px 1px 0px #FFFFFF) drop-shadow(0px -1px 0px #0A0B0D);
+  filter: drop-shadow(0px 1px 0px rgba(238,246,252,0.6)) drop-shadow(0px -1px 0px #0E1E2E) drop-shadow(0 0 6px rgba(106,170,208,0.4));
   animation: volvoShimmerLight 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
 }
 
@@ -576,9 +685,11 @@ body {
   background: linear-gradient(
     115deg,
     transparent 0%,
-    transparent 35%,
-    #F4F5F7 50%,
-    transparent 65%,
+    rgba(180,183,196,0.0) 30%,
+    rgba(232,233,240,0.9) 48%,
+    rgba(255,255,255,1.0) 50%,
+    rgba(232,233,240,0.9) 52%,
+    rgba(180,183,196,0.0) 70%,
     transparent 100%
   );
   opacity: 0;
@@ -588,11 +699,11 @@ body {
   transition: opacity 0.05s ease;
 }
 .v-card:hover::before {
-  opacity: 0.028;
-  animation: chromeSweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0.055;   /* bigger silver flash */
+  animation: chromeSweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 .light .v-card:hover::before {
-  opacity: 0.5;
+  opacity: 0.65;
 }
 @keyframes chromeSweep {
   0%   { transform: translateX(-120%); }
@@ -608,20 +719,24 @@ body {
   content: "";
   position: absolute;
   top: 0;
-  left: 8%;
-  right: 8%;
+  left: 6%;
+  right: 6%;
   height: 1px;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    #3A3C40 10%,
-    #8E9095 35%,
-    #D4D6DB 50%,
-    #8E9095 65%,
-    #3A3C40 90%,
+    #3A3D47 8%,
+    #7A7D8A 25%,
+    #A0A3AD 38%,
+    #C8CAD2 50%,
+    #EDEEF3 52%,   /* silver specular peak — wider & brighter */
+    #C8CAD2 56%,
+    #A0A3AD 65%,
+    #7A7D8A 80%,
+    #3A3D47 92%,
     transparent 100%
   );
-  opacity: 0.55;
+  opacity: 0.75;   /* more visible */
   pointer-events: none;
   z-index: 1;
 }
@@ -629,13 +744,15 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    #D0D2D7 10%,
-    #FFFFFF 45%,
-    #FFFFFF 55%,
-    #D0D2D7 90%,
+    #C8CAD2 8%,
+    #EDEEF3 35%,
+    #FFFFFF 48%,
+    #FFFFFF 52%,
+    #EDEEF3 65%,
+    #C8CAD2 92%,
     transparent 100%
   );
-  opacity: 0.9;
+  opacity: 1;
 }
 
 /* ── 3. SIDEBAR BRUSHED-CROSSHATCH TEXTURE ──
@@ -665,8 +782,8 @@ body {
     -45deg,
     transparent 0px,
     transparent 3px,
-    #0A0B0D 3px,
-    #0A0B0D 3.35px,
+    #0E1E2E 3px,
+    #0E1E2E 3.35px,
     transparent 3.35px,
     transparent 6px
   );
@@ -682,16 +799,22 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, #3A3D44 0%, #1A1C20 40%, #0F1012 100%);
-  opacity: 0.4;
+  background: linear-gradient(180deg, #52566A 0%, #2A2D3A 35%, #15181E 70%, #0F1014 100%);
+  opacity: 0.55;
   pointer-events: none;
   z-index: 0;
 }
 .light .v-header::before {
-  background: linear-gradient(180deg, #FFFFFF 0%, #F0F1F4 50%, #E6E7EB 100%);
-  opacity: 0.6;
+  /* Metallic blue sheen — like light catching brushed aluminium */
+  background: linear-gradient(180deg,
+    #C8D8E8 0%,
+    #8AAABF 30%,
+    #6A90A8 60%,
+    #5A8098 100%
+  );
+  opacity: 0.55;
 }
-/* Bottom chrome hairline */
+/* Bottom chrome hairline — extra-bright silver */
 .v-header::after {
   content: "";
   position: absolute;
@@ -702,14 +825,18 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    #2A2B2E 5%,
-    #8E9095 30%,
-    #D4D6DB 50%,
-    #8E9095 70%,
-    #2A2B2E 95%,
+    #3A3D47 4%,
+    #7A7D8A 20%,
+    #A0A3AD 35%,
+    #C8CAD2 45%,
+    #EDEEF3 50%,   /* bright silver peak */
+    #C8CAD2 55%,
+    #A0A3AD 65%,
+    #7A7D8A 80%,
+    #3A3D47 96%,
     transparent 100%
   );
-  opacity: 0.7;
+  opacity: 0.9;
   pointer-events: none;
   z-index: 2;
 }
@@ -717,9 +844,13 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    #C7C9CF 5%,
-    #FFFFFF 50%,
-    #C7C9CF 95%,
+    #6A90A8 4%,
+    #A0C4D8 22%,
+    #C8E0EE 44%,
+    #EEF6FC 50%,   /* ice-blue specular peak */
+    #C8E0EE 56%,
+    #A0C4D8 78%,
+    #6A90A8 96%,
     transparent 100%
   );
   opacity: 1;
@@ -734,32 +865,40 @@ body {
 .v-logo-badge::after {
   content: "";
   position: absolute;
-  inset: -2px;
+  inset: -3px;   /* slightly wider ring */
   border-radius: 50%;
   background: conic-gradient(
     from 0deg,
     transparent 0deg,
-    #8E9095 60deg,
-    #F4F5F7 120deg,
-    #8E9095 180deg,
+    #3A3D47 30deg,
+    #7A7D8A 60deg,
+    #C8CAD2 90deg,
+    #EDEEF3 120deg,   /* bright silver flash */
+    #C8CAD2 150deg,
+    #7A7D8A 180deg,
+    #3A3D47 210deg,
     transparent 240deg,
     transparent 360deg
   );
-  animation: badgeSpin 10s linear infinite;
+  animation: badgeSpin 8s linear infinite;   /* slightly faster */
   z-index: -1;
-  opacity: 0.5;
+  opacity: 0.75;
 }
 .light .v-logo-badge::after {
   background: conic-gradient(
     from 0deg,
     transparent 0deg,
-    #6B6D73 60deg,
-    #111214 120deg,
-    #6B6D73 180deg,
+    #8AAABF 30deg,
+    #A0C4D8 60deg,
+    #C8E0EE 90deg,
+    #EEF6FC 120deg,   /* ice-blue flash */
+    #C8E0EE 150deg,
+    #A0C4D8 180deg,
+    #8AAABF 210deg,
     transparent 240deg,
     transparent 360deg
   );
-  opacity: 0.25;
+  opacity: 0.55;
 }
 @keyframes badgeSpin {
   from { transform: rotate(0deg); }
@@ -792,22 +931,26 @@ body {
   border-radius: 99px;
 }
 .light .v-filter-pill.active::before {
-  background: linear-gradient(90deg, transparent, #FFFFFF, transparent);
-  opacity: 0.8;
+  background: linear-gradient(90deg, transparent, #EEF6FC, transparent);
+  opacity: 0.9;
 }
 
 /* ── 8. PROGRESS TRACK — machined channel indent ── */
 .v-progress-track {
-  background: linear-gradient(180deg, #050505 0%, #18191C 100%);
+  background: linear-gradient(180deg, #08090E 0%, #1C1E26 50%, #2C2E38 100%);
+  box-shadow: inset 0 1px 0 rgba(200,202,210,0.08);
 }
 .light .v-progress-track {
-  background: linear-gradient(180deg, #C7C9CF 0%, #E8E9EC 100%);
+  background: linear-gradient(180deg, #8AAABF 0%, #AABFCE 50%, #C8D8E4 100%);
+  box-shadow: inset 0 1px 0 rgba(238,246,252,0.6);
 }
 .v-minibar-track {
-  background: linear-gradient(180deg, #050505 0%, #18191C 100%);
+  background: linear-gradient(180deg, #08090E 0%, #1C1E26 50%, #2C2E38 100%);
+  box-shadow: inset 0 1px 0 rgba(200,202,210,0.08);
 }
 .light .v-minibar-track {
-  background: linear-gradient(180deg, #C7C9CF 0%, #E8E9EC 100%);
+  background: linear-gradient(180deg, #8AAABF 0%, #AABFCE 50%, #C8D8E4 100%);
+  box-shadow: inset 0 1px 0 rgba(238,246,252,0.6);
 }
 
 /* ── 9. SECTION TITLE RIVET DOTS ──
@@ -820,15 +963,17 @@ body {
 .v-section-title::before,
 .v-section-title::after {
   content: "";
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6A6D74, #2A2B2E);
+  background: radial-gradient(circle at 35% 30%, #EDEEF3, #7A7D8A 50%, #2C2E38);
+  box-shadow: 0 0 3px rgba(200,202,210,0.4);
   flex-shrink: 0;
 }
 .light .v-section-title::before,
 .light .v-section-title::after {
-  background: linear-gradient(135deg, #FFFFFF, #C7C9CF);
+  background: radial-gradient(circle at 35% 30%, #EEF6FC, #A0C4D8 50%, #4A6878);
+  box-shadow: 0 0 3px rgba(100, 160, 210, 0.35);
 }
 
 /* ── 10. DIVIDER — chrome flash center reflection ── */
@@ -838,38 +983,71 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    #2A2B2E 8%,
-    #8E9095 35%,
-    #D4D6DB 50%,
-    #8E9095 65%,
-    #2A2B2E 92%,
+    #3A3D47 6%,
+    #7A7D8A 22%,
+    #A0A3AD 38%,
+    #C8CAD2 46%,
+    #EDEEF3 50%,   /* bright silver midpoint */
+    #C8CAD2 54%,
+    #A0A3AD 62%,
+    #7A7D8A 78%,
+    #3A3D47 94%,
     transparent 100%
   );
-  opacity: 0.5;
+  opacity: 0.7;
 }
 .light .v-divider {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    #C7C9CF 8%,
-    #FFFFFF 50%,
-    #C7C9CF 92%,
+    #6A90A8 6%,
+    #98B8CC 24%,
+    #BCD4E4 42%,
+    #D8EEFA 50%,   /* ice-blue specular peak */
+    #BCD4E4 58%,
+    #98B8CC 76%,
+    #6A90A8 94%,
     transparent 100%
   );
   opacity: 0.85;
 }
 
-/* ── 11. BODY VIGNETTE — enclosure housing depth ── */
+/* ── 11. BODY VIGNETTE + SILVER SHEEN OVERLAY ── */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, transparent 55%, #000000 135%);
-  opacity: 0.3;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 55%, #000000 135%),
+    /* subtle silver grain across entire surface */
+    repeating-linear-gradient(
+      75deg,
+      transparent 0px,
+      transparent 18px,
+      rgba(200,202,210,0.012) 18px,
+      rgba(200,202,210,0.012) 18.5px,
+      transparent 18.5px,
+      transparent 36px
+    );
+  opacity: 0.4;
   pointer-events: none;
   z-index: 9999;
 }
-.light body::after { opacity: 0.05; }
+.light body::after {
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(14,30,46,0.14) 130%),
+    /* subtle metallic blue diagonal grain */
+    repeating-linear-gradient(
+      75deg,
+      transparent 0px,
+      transparent 18px,
+      rgba(100,150,190,0.025) 18px,
+      rgba(100,150,190,0.025) 18.5px,
+      transparent 18.5px,
+      transparent 36px
+    );
+  opacity: 1;
+}
 
 /* ── 12. KPI SHIMMER ANIMATION on mount ── */
 @keyframes kpiShimmer {
@@ -881,21 +1059,21 @@ body::after {
    The iron-mark badge breathes slowly, like a standby
    indicator on precision industrial equipment.         */
 @keyframes volvoPulse {
-  0%, 100% { filter: drop-shadow(0 0 4px #8E9095) drop-shadow(0 0 1px #2A2B2E); opacity: 0.95; }
-  50%       { filter: drop-shadow(0 0 8px #D4D6DB) drop-shadow(0 0 2px #8E9095); opacity: 1; }
+  0%, 100% { filter: drop-shadow(0 0 5px #A0A3AD) drop-shadow(0 0 2px #3A3D47) drop-shadow(0 0 1px #2C2E38); opacity: 0.92; }
+  50%       { filter: drop-shadow(0 0 12px #C8CAD2) drop-shadow(0 0 5px #A0A3AD) drop-shadow(0 0 2px #6A6D78); opacity: 1; }
 }
 
 .v-sidebar > div:first-child svg {
   animation: volvoPulse 4s ease-in-out infinite;
 }
 
-/* Light: darker glow */
+/* Light: darker steel glow */
 .light .v-sidebar > div:first-child svg {
   animation: volvoPulseLight 4s ease-in-out infinite;
 }
 @keyframes volvoPulseLight {
-  0%, 100% { filter: drop-shadow(0 0 3px #C7C9CF); opacity: 0.9; }
-  50%       { filter: drop-shadow(0 0 6px #33353A); opacity: 1; }
+  0%, 100% { filter: drop-shadow(0 0 4px #8AAABF) drop-shadow(0 0 2px #4A6878); opacity: 0.88; }
+  50%       { filter: drop-shadow(0 0 10px #A0C4D8) drop-shadow(0 0 4px #6AAAD0); opacity: 1; }
 }
 
 
