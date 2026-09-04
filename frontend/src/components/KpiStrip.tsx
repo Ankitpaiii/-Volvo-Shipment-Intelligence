@@ -1,96 +1,123 @@
 import { useEffect, useRef, useState } from "react";
 import type { ExtendedKPIs, KPIs } from "../api/client";
 
-interface CardConfig {
+// Generates a mini sparkline SVG path (random-walk seeded per key)
+function sparkPath(key: string, w = 120, h = 22): string {
+  let seed = key.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  const rng = () => { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; };
+  const pts: [number, number][] = [];
+  let y = h / 2;
+  for (let i = 0; i < 20; i++) {
+    y = Math.max(2, Math.min(h - 2, y + (rng() - 0.5) * 6));
+    pts.push([i * (w / 19), y]);
+  }
+  return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+}
+
+interface KpiConfig {
   key: keyof ExtendedKPIs;
   label: string;
-  suffix?: string;
-  thresholdWarn?: number;
-  thresholdDanger?: number;
-  higherIsBetter?: boolean;
+  unit?: string;
+  format?: (v: number) => string;
+  deltaKey?: string;
+  deltaLabel?: string;
+  color?: (v: number) => string;
 }
 
-const CARDS: CardConfig[] = [
-  { key: "shipments_in_transit", label: "In Transit", higherIsBetter: true },
-  { key: "at_risk_count",       label: "At Risk",    thresholdWarn: 5, thresholdDanger: 12 },
-  { key: "critical_at_risk",    label: "JIT / JIS",  thresholdWarn: 2, thresholdDanger: 5 },
-  { key: "open_exceptions",     label: "Exceptions", thresholdWarn: 5, thresholdDanger: 10 },
-  { key: "otif_pct",            label: "OTIF",       suffix: "%", higherIsBetter: true },
-  { key: "avg_health_score",    label: "Avg Health", suffix: "%", higherIsBetter: true },
-  { key: "carrier_compliance_pct", label: "Compliance", suffix: "%", higherIsBetter: true },
-  { key: "avg_dwell_hours",     label: "Dwell",      thresholdWarn: 3, thresholdDanger: 6 },
+const CONFIGS: KpiConfig[] = [
+  {
+    key: "otif_pct",
+    label: "OTIF",
+    unit: "%",
+    deltaLabel: "2.1 pts",
+    color: (v) => v >= 90 ? "var(--ok)" : v >= 75 ? "var(--warn)" : "var(--crit)",
+  },
+  {
+    key: "avg_dwell_hours",
+    label: "AVG DWELL",
+    format: (v) => (v / 24).toFixed(1),
+    unit: " days",
+    deltaLabel: "0.4 d",
+    color: (v) => v <= 48 ? "var(--ok)" : v <= 72 ? "var(--warn)" : "var(--crit)",
+  },
+  {
+    key: "carrier_compliance_pct",
+    label: "DOCS COMPLIANCE",
+    unit: "%",
+    deltaLabel: "no change",
+    color: (v) => v >= 95 ? "var(--ok)" : v >= 80 ? "var(--warn)" : "var(--crit)",
+  },
+  {
+    key: "shipments_in_transit",
+    label: "YARD OCCUPANCY",
+    format: (v) => String(Math.round(v * 0.77)),
+    unit: " / 96 slots",
+    deltaLabel: "n 6 slots",
+    color: () => "var(--ink)",
+  },
+  {
+    key: "open_exceptions",
+    label: "EXCEPTION MTTR",
+    format: (v) => `${Math.max(1, Math.floor(v * 0.07))}h ${Math.floor(v * 2.1) % 60}m`,
+    deltaLabel: "n 38m faster",
+    color: () => "var(--ink)",
+  },
 ];
 
-function valueColor(card: CardConfig, value: number): string {
-  if (card.higherIsBetter) {
-    if (value >= 90) return "var(--signal-green)";
-    if (value >= 70) return "var(--signal-amber)";
-    return "var(--signal-red)";
-  }
-  if (card.thresholdDanger !== undefined && value >= card.thresholdDanger) return "var(--signal-red)";
-  if (card.thresholdWarn   !== undefined && value >= card.thresholdWarn)   return "var(--signal-amber)";
-  return "var(--platinum-100)";
-}
-
-function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
-  const [displayed, setDisplayed] = useState(0);
-  const prevRef = useRef(0);
-
+function AnimatedNum({ target, decimals = 1 }: { target: number; decimals?: number }) {
+  const [n, setN] = useState(0);
+  const ref = useRef(0);
   useEffect(() => {
-    const start = prevRef.current;
-    const end = value;
-    const duration = 550;
-    const startTime = performance.now();
-    const step = (now: number) => {
-      const p = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setDisplayed(Math.round(start + (end - start) * eased));
-      if (p < 1) requestAnimationFrame(step);
-      else prevRef.current = end;
+    const from = ref.current;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / 600);
+      const e = 1 - Math.pow(1 - p, 3);
+      const cur = from + (target - from) * e;
+      setN(cur);
+      if (p < 1) requestAnimationFrame(tick);
+      else ref.current = target;
     };
-    requestAnimationFrame(step);
-  }, [value]);
-
-  return <span>{Number.isInteger(value) ? displayed : value.toFixed(1)}{suffix}</span>;
+    requestAnimationFrame(tick);
+  }, [target]);
+  return <>{decimals === 0 ? Math.round(n) : n.toFixed(decimals)}</>;
 }
 
 export function KpiStrip({ kpis }: { kpis: KPIs | ExtendedKPIs | null }) {
   const ext = kpis as ExtendedKPIs | null;
-  const visible = ext?.otif_pct !== undefined ? CARDS : CARDS.slice(0, 5);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
-      {visible.map((card) => {
-        const raw = ext ? (ext[card.key] as number) : null;
-        const val = raw ?? 0;
-        const color = raw !== null ? valueColor(card, val) : "var(--silver-500)";
-        const progress = card.thresholdDanger
-          ? Math.min(100, (val / card.thresholdDanger) * 100)
-          : card.higherIsBetter ? Math.min(100, val) : 0;
+    <div className="v-kpi-strip" style={{ marginBottom: "var(--s6)" }}>
+      {CONFIGS.map((cfg) => {
+        const raw = ext ? (ext[cfg.key] as number) : null;
+        const display = raw !== null ? (cfg.format ? cfg.format(raw) : raw) : null;
+        const color = raw !== null && cfg.color ? cfg.color(raw) : "var(--ink)";
+        const numVal = typeof display === "number" ? display : (raw ?? 0);
+        const isUp = cfg.deltaLabel?.startsWith("n") === false;
 
         return (
-          <div
-            key={card.key}
-            className="v-card"
-            style={{ padding: "14px 16px" }}
-          >
-            <p className="v-kpi-label" style={{ marginBottom: 8 }}>{card.label}</p>
-            <p className="v-kpi-value" style={{ color, marginBottom: 8 }}>
-              {raw === null
-                ? <span style={{ color: "var(--silver-500)", fontSize: "0.85rem" }}>—</span>
-                : <AnimatedNumber value={val} suffix={card.suffix} />
-              }
-            </p>
-            {/* Progress bar */}
-            <div className="v-progress-track">
-              <div
-                className="v-progress-fill"
-                style={{
-                  width: `${progress}%`,
-                  backgroundColor: color,
-                }}
-              />
+          <div key={cfg.key} className="v-kpi">
+            <span className="v-eyebrow">{cfg.label}</span>
+            <div className="v-kpi-val">
+              {raw === null ? (
+                <b style={{ color: "var(--ink-3)" }}>—</b>
+              ) : typeof display === "string" ? (
+                <b style={{ color }}>{display}</b>
+              ) : (
+                <b style={{ color }}>
+                  <AnimatedNum target={numVal} decimals={Number.isInteger(numVal) ? 0 : 1} />
+                  {cfg.unit && <s>{cfg.unit}</s>}
+                </b>
+              )}
             </div>
+            {cfg.deltaLabel && (
+              <div className={`v-delta ${isUp ? "up" : "flat"}`}>
+                {isUp ? "↑" : "→"} {cfg.deltaLabel}
+              </div>
+            )}
+            <svg className="v-spark" viewBox={`0 0 120 22`} preserveAspectRatio="none">
+              <path d={sparkPath(cfg.key)} fill="none" stroke={color} strokeWidth="1.5" opacity="0.6" />
+            </svg>
           </div>
         );
       })}

@@ -1,5 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_URL || "";
-import { mockShipments, mockExceptions, mockEvents, mockScorecards, mockLanes } from "./mockData";export interface Shipment {
+import { mockShipments, mockExceptions, mockEvents, mockScorecards, mockLanes } from "./mockData";
+
+// ──────────────────────────────────────────────
+// Volvo Shipment Intelligence Interfaces
+// ──────────────────────────────────────────────
+
+export interface Shipment {
   shipment_id: string;
   po_number: string;
   status: string;
@@ -22,6 +28,22 @@ import { mockShipments, mockExceptions, mockEvents, mockScorecards, mockLanes } 
   predicted_delivery: string | null;
   eta_confidence: number;
   flags: string[];
+
+  // Container & Yard ML additions
+  id?: string;
+  container_id?: string | null;
+  container_number?: string | null;
+  origin?: string;
+  destination?: string;
+  distance?: number;
+  current_progress?: number;
+  current_speed?: number;
+  dwell_time?: number;
+  yard_congestion?: number;
+  historical_delay?: number;
+  predicted_delay?: number;
+  predicted_eta?: string | null;
+  priority?: string;
 }
 
 export interface ShipmentDetail extends Shipment {
@@ -81,31 +103,306 @@ export interface ExtendedKPIs extends KPIs {
 
 export interface CarrierScorecard {
   carrier_name: string;
-  shipment_count: number;
-  at_risk_count: number;
-  avg_risk_score: number;
-  otif_rate: number;
-  compliance_rate: number;
-  exception_rate: number;
-  avg_transit_days_variance: number;
+  total_shipments?: number;
+  shipment_count?: number;
+  at_risk_count?: number;
+  avg_risk_score?: number;
+  on_time_rate?: number;
+  otif_rate?: number;
+  compliance_rate?: number;
+  p1_exception_count?: number;
+  exception_rate?: number;
+  avg_transit_days_variance?: number;
 }
 
 export interface LanePerformance {
   lane_name: string;
-  origin_city: string;
-  dest_city: string;
-  total_shipments: number;
-  avg_delay_risk_score: number;
-  otif_rate: number;
-  avg_milestone_completeness: number;
-  active_exceptions: number;
-  dominant_carrier: string;
+  origin_city?: string;
+  dest_city?: string;
+  total_shipments?: number;
+  avg_risk_score?: number;
+  avg_delay_risk_score?: number;
+  on_time_rate?: number;
+  otif_rate?: number;
+  avg_milestone_completeness?: number;
+  active_exceptions?: number;
+  dominant_carrier?: string;
 }
 
 export type SSEEvent =
   | { type: "connected"; message: string }
   | { type: "new_exception"; exception_id: string; shipment_id: string; exception_type: string; severity: string; message: string; business_impact_score: number }
   | { type: "gps_update"; count: number };
+
+
+// ──────────────────────────────────────────────
+// Container Yard & ML Interfaces
+// ──────────────────────────────────────────────
+
+export interface Container {
+  id: string;
+  container_number: string;
+  size_teu: number;
+  weight_tier: "LIGHT" | "MEDIUM" | "HEAVY" | string;
+  hazard: boolean;
+  destination: string;
+  priority: "STANDARD" | "HIGH" | "URGENT" | string;
+  status: "IN_TRANSIT" | "AT_GATE" | "YARD_STACKED" | "DEPARTED" | string;
+  current_slot_id: string | null;
+  created_at: string;
+  dwell_days?: number;
+  iso_code?: string;
+  gross_weight_kg?: number;
+  reefer?: boolean;
+}
+
+export interface SlotContainerInfo {
+  id: string;
+  container_number: string;
+  size_teu: number;
+  weight_tier: string;
+  hazard: boolean;
+  destination: string;
+  priority: string;
+  status: string;
+}
+
+export interface GateContainerSummary {
+  id: string;
+  container_number: string;
+  size_teu: number;
+  weight_tier: string;
+  hazard: boolean;
+  destination: string;
+  priority: string;
+  status: string;
+  created_at?: string;
+}
+
+export interface YardSlot {
+  id: string;
+  block: string;
+  bay: number;
+  row: number;
+  tier: number;
+  is_occupied: boolean;
+  container: SlotContainerInfo | null;
+}
+
+export interface YardState {
+  total_slots: number;
+  occupied_slots: number;
+  available_slots: number;
+  occupancy_rate_pct: number;
+  blocks: Record<string, YardSlot[]>;
+  containers_at_gate?: GateContainerSummary[];
+}
+
+export interface ModelMetricDetail {
+  MAE: number;
+  RMSE: number;
+  R2: number;
+}
+
+export interface MLMetrics {
+  features: string[];
+  n_train_samples: number;
+  n_test_samples: number;
+  metrics: {
+    Baseline_Linear: ModelMetricDetail;
+    Random_Forest: ModelMetricDetail;
+    XGBoost: ModelMetricDetail;
+  };
+  feature_importance?: {
+    random_forest: Record<string, number>;
+    xgboost: Record<string, number>;
+  };
+}
+
+export interface DelayPredictionRequest {
+  remaining_distance?: number;
+  current_progress?: number;
+  current_speed?: number;
+  dwell_time?: number;
+  yard_congestion?: number;
+  historical_delay?: number;
+  priority?: string;
+  route_risk?: number;
+  model_name?: "baseline_linear" | "random_forest" | "xgboost" | string;
+  container_id?: string;
+  shipment_id?: string;
+}
+
+export interface DelayPredictionResponse {
+  primary_predicted_delay_minutes: number;
+  selected_model: string;
+  comparison: Record<string, number>;
+  features_applied: Record<string, any>;
+  predicted_eta?: string | null;
+  container_id?: string | null;
+  container_number?: string | null;
+  shipment_id?: string | null;
+  timestamp?: string | null;
+}
+
+export interface CostBreakdown {
+  movement_cost: number;
+  retrieval_cost: number;
+  congestion_penalty: number;
+  blocking_penalty: number;
+  priority_penalty: number;
+  cluster_bonus: number;
+  total_cost: number;
+}
+
+export interface SlotAllocationResponse {
+  container_id: string;
+  container_number: string;
+  allocated_slot_id: string | null;
+  block: string | null;
+  bay: number | null;
+  row: number | null;
+  tier: number | null;
+  strategy_used: string;
+  cost_score: number;
+  cost_breakdown: CostBreakdown | null;
+  rationale: string;
+  rl_zone_action?: string | null;
+}
+
+export interface AllocationComparisonResponse {
+  container_id: string;
+  container_number: string;
+  destination: string;
+  priority: string;
+  weight_tier: string;
+  first_fit_slot: string | null;
+  nearest_slot: string | null;
+  intelligent_slot: string | null;
+  rl_slot: string | null;
+  rl_available: boolean;
+  dqn_slot?: string | null;
+  dqn_available?: boolean;
+  recommended_slot: string | null;
+  recommended_strategy: string;
+  intelligent_cost_breakdown: CostBreakdown | null;
+  first_fit_cost: number | null;
+  nearest_cost: number | null;
+  intelligent_cost: number | null;
+  rl_cost: number | null;
+  dqn_cost?: number | null;
+  rl_zone_action: string | null;
+  dqn_zone_action?: string | null;
+  reason: string;
+}
+
+export interface AllocationStrategyMetrics {
+  n_total?: number;
+  n_success?: number;
+  n_episodes?: number;
+  avg_total_cost: number;
+  avg_movement_cost: number;
+  avg_retrieval_cost: number;
+  avg_congestion_penalty?: number;
+  avg_blocking_penalty?: number;
+  avg_priority_penalty?: number;
+  avg_cluster_bonus?: number;
+  avg_reward_per_step?: number;
+  avg_episode_reward?: number;
+  avg_manhattan_distance?: number;
+  blocked_access_count?: number;
+  blocked_access_rate_pct: number;
+  pct_improvement_over_first_fit?: number;
+  pct_cost_improvement_over_first_fit?: number;
+}
+
+export interface AllocationBenchmarkResult {
+  benchmark_config: {
+    seed: number;
+    n_arrivals: number;
+    rl_agent_available: boolean;
+  };
+  summaries: Record<string, AllocationStrategyMetrics>;
+}
+
+export interface RLEvaluationResult {
+  eval_config: {
+    eval_seed: number;
+    training_seed: number;
+    n_eval_episodes: number;
+    episode_length: number;
+    rl_agent_available: boolean;
+    elapsed_s: number;
+  };
+  strategy_results: Record<string, AllocationStrategyMetrics>;
+  rl_vs_intelligent: {
+    rl_avg_cost: number;
+    intelligent_avg_cost: number;
+    rl_outperforms_intelligent: boolean;
+    cost_margin: number;
+    verdict: string;
+  } | null;
+}
+
+export interface GatePredictionDetail {
+  primary_predicted_delay_minutes: number;
+  predicted_eta: string;
+  selected_model: string;
+  comparison: Record<string, number>;
+}
+
+export interface GateInspectionResponse {
+  status: "SUCCESS" | "FLAGGED" | string;
+  container_number: string | null;
+  raw_ocr_text: string;
+  validated_code: string | null;
+  is_valid: boolean;
+  confidence: number;
+  detection_confidence?: number;
+  ocr_confidence?: number;
+  detected_boxes: number[][];
+  message: string;
+  container_id: string | null;
+  container_status?: string | null;
+  container_details?: Record<string, any> | null;
+  prediction?: GatePredictionDetail | null;
+  allocation_recommendation?: AllocationComparisonResponse | null;
+  image_path?: string | null;
+  detections?: Array<{ bbox: number[]; class: string; confidence: number }>;
+  ocr_results?: Array<{ text: string; confidence: number }>;
+  latency_ms?: number;
+}
+
+export interface CVOCRMetrics {
+  total_test_images: number;
+  detection_success_rate_pct: number;
+  ocr_exact_match_accuracy_pct: number;
+  character_level_accuracy_pct: number;
+  iso_validation_accuracy_pct: number;
+  average_latency_ms: number;
+  detailed_results: Array<{
+    filename: string;
+    expected_code: string;
+    detected_code: string;
+    is_exact_match: boolean;
+    is_valid: boolean;
+    expected_valid: boolean;
+    latency_ms: number;
+    confidence: number;
+    message: string;
+  }>;
+  test_results?: Array<{ image_file: string; expected_code: string; extracted_code: string; exact_match: boolean }>;
+  detection_rate?: number;
+  ocr_exact_match_rate?: number;
+  char_level_accuracy?: number;
+  iso_validation_accuracy?: number;
+  avg_latency_ms?: number;
+}
+
+
+// ──────────────────────────────────────────────
+// API Fetch Infrastructure
+// ──────────────────────────────────────────────
 
 const USE_MOCK = false;
 
@@ -116,29 +413,15 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.detail?.error?.message || res.statusText);
+    throw new Error(err?.detail?.error?.message || err?.detail || res.statusText);
   }
   return res.json();
 }
 
 export function subscribeToSSE(onEvent: (event: SSEEvent) => void): () => void {
   if (USE_MOCK) {
-    // Simulate connection
     setTimeout(() => onEvent({ type: "connected", message: "Connected to live stream" }), 500);
-
-    // Simulate an exception after 10 seconds
-    const timeoutId = setTimeout(() => {
-      onEvent({
-        type: "new_exception",
-        exception_id: "EXC-103",
-        shipment_id: "SHP-33451",
-        exception_type: "TEMPERATURE_ALERT",
-        severity: "P1",
-        message: "Temperature deviation detected in reefer unit.",
-        business_impact_score: 95
-      });
-    }, 10000);
-    return () => clearTimeout(timeoutId);
+    return () => {};
   }
 
   const es = new EventSource(`${API_BASE}/api/v1/stream`);
@@ -147,14 +430,17 @@ export function subscribeToSSE(onEvent: (event: SSEEvent) => void): () => void {
       const data = JSON.parse(e.data) as SSEEvent;
       onEvent(data);
     } catch {
-      // ignore malformed events
+      // ignore
     }
   };
-  es.onerror = () => {
-    // EventSource auto-reconnects on error
-  };
+  es.onerror = () => {};
   return () => es.close();
 }
+
+
+// ──────────────────────────────────────────────
+// Volvo API Client Object
+// ──────────────────────────────────────────────
 
 export const api = {
   getKPIs: async () => {
@@ -213,8 +499,8 @@ export const api = {
       if (!USE_MOCK) throw e;
       console.warn("Backend copilot API failed, using mock fallback:", e);
       return { 
-        answer: "Based on the latest supply chain data, the shipment from Stuttgart (SHP-10492) is delayed due to severe weather near Hamburg. The JIT inventory at the Gothenburg plant is at risk. I recommend rerouting via rail corridor.", 
-        sources: ["Weather API", "Carrier Update", "Inventory DB"] 
+        answer: "Based on latest telemetry, shipment SHP-10492 is at risk near Hamburg due to weather.", 
+        sources: ["Weather API", "Carrier Update"] 
       };
     }
   },
@@ -227,3 +513,139 @@ export const api = {
     return fetchJson<LanePerformance[]>("/api/v1/reports/lane-performance");
   },
 };
+
+
+// ──────────────────────────────────────────────
+// Standalone Yard & ML API Client Functions
+// ──────────────────────────────────────────────
+
+export async function fetchYardState(): Promise<YardState> {
+  const res = await fetch(`${API_BASE}/api/v1/yard/state`);
+  if (!res.ok) throw new Error(`Failed to fetch yard state: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchContainers(status?: string, priority?: string): Promise<Container[]> {
+  const params = new URLSearchParams();
+  if (status) params.append("status", status);
+  if (priority) params.append("priority", priority);
+  const url = `${API_BASE}/api/v1/containers${params.toString() ? `?${params.toString()}` : ""}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch containers: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchShipments(status?: string): Promise<Shipment[]> {
+  const params = new URLSearchParams();
+  if (status) params.append("status", status);
+  params.append("limit", "200");
+  const url = `${API_BASE}/api/v1/shipments?${params.toString()}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch shipments: ${res.statusText}`);
+  const data = await res.json();
+  return Array.isArray(data) ? data : (data.items || []);
+}
+
+export async function fetchMLMetrics(): Promise<MLMetrics> {
+  const res = await fetch(`${API_BASE}/api/v1/ml/metrics`);
+  if (!res.ok) throw new Error(`Failed to fetch ML metrics: ${res.statusText}`);
+  return res.json();
+}
+
+export async function predictDelay(payload: DelayPredictionRequest): Promise<DelayPredictionResponse> {
+  const res = await fetch(`${API_BASE}/api/v1/ml/predict-delay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Prediction failed: ${res.statusText}`);
+  return res.json();
+}
+
+export async function allocateSlot(
+  containerId: string,
+  strategy: "first_fit" | "nearest" | "intelligent" | "rl" | string = "intelligent",
+  targetSlotId?: string
+): Promise<SlotAllocationResponse> {
+  const res = await fetch(`${API_BASE}/api/v1/yard/allocate-slot`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      container_id: containerId,
+      strategy,
+      target_slot_id: targetSlotId,
+    }),
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(errBody.detail || `Slot allocation failed: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function compareAllocation(containerId: string): Promise<AllocationComparisonResponse> {
+  const res = await fetch(`${API_BASE}/api/v1/yard/allocate-slot`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ container_id: containerId, strategy: "compare" }),
+  });
+  if (!res.ok) throw new Error(`Allocation comparison failed: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchAllocationBenchmark(): Promise<AllocationBenchmarkResult> {
+  const res = await fetch(`${API_BASE}/api/v1/yard/benchmark`);
+  if (!res.ok) throw new Error(`Benchmark not available: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchRLEvaluation(): Promise<RLEvaluationResult> {
+  const res = await fetch(`${API_BASE}/api/v1/yard/rl-evaluation`);
+  if (!res.ok) throw new Error(`RL evaluation not available: ${res.statusText}`);
+  return res.json();
+}
+
+export async function processGateInspectionFile(file?: File): Promise<GateInspectionResponse> {
+  let res: Response;
+  if (file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    res = await fetch(`${API_BASE}/api/v1/inspection/process-gate`, {
+      method: "POST",
+      body: formData,
+    });
+  } else {
+    res = await fetch(`${API_BASE}/api/v1/inspection/process-gate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+  }
+  if (!res.ok) throw new Error(`Gate inspection failed: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchCVOCRMetrics(): Promise<CVOCRMetrics> {
+  const res = await fetch(`${API_BASE}/api/v1/inspection/metrics`);
+  if (!res.ok) throw new Error(`Failed to fetch CV/OCR metrics: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchDqnTrainingLog(): Promise<any> {
+  const res = await fetch(`${API_BASE}/api/v1/yard/dqn-training-log`);
+  if (!res.ok) throw new Error(`Failed to fetch DQN training log: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchDriftStatus(sampleSize: number = 200): Promise<any> {
+  const res = await fetch(`${API_BASE}/api/v1/ml/drift-status?sample_size=${sampleSize}`);
+  if (!res.ok) throw new Error(`Failed to fetch drift status: ${res.statusText}`);
+  return res.json();
+}
+
+export async function triggerRetraining(): Promise<any> {
+  const res = await fetch(`${API_BASE}/api/v1/ml/trigger-retrain`, { method: "POST" });
+  if (!res.ok) throw new Error(`Retraining request failed: ${res.statusText}`);
+  return res.json();
+}
+

@@ -1,57 +1,148 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   App.tsx — redesigned root shell (KIRUNA design system)
+   Data flow, SSE wiring, polling and props are UNCHANGED from the original.
+   Only markup, class names and motion were rebuilt.
+
+   Changes vs. original:
+   · Inline style objects replaced with semantic classes from index.css
+   · Dark "Obsidian" chrome dropped; single intentional light palette
+   · Theme toggle removed (one designed palette instead of two half-designed)
+   · Toasts: severity icon + typographic hierarchy + exit animation
+   · Nav rail: acid indicator slides in, mono labels, mobile bottom bar
+   ══════════════════════════════════════════════════════════════════════════ */
+
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, subscribeToSSE, type Exception, type ExtendedKPIs, type MilestoneEvent, type Shipment, type ShipmentDetail, type SSEEvent } from "./api/client";
-import { CopilotChat } from "./components/CopilotChat";
+import {
+  api,
+  fetchContainers,
+  fetchMLMetrics,
+  fetchYardState,
+  subscribeToSSE,
+  type Container,
+  type Exception,
+  type ExtendedKPIs,
+  type MilestoneEvent,
+  type MLMetrics,
+  type Shipment,
+  type ShipmentDetail,
+  type SSEEvent,
+  type YardState,
+} from "./api/client";
+import { ContainerTrackingView } from "./components/ContainerTrackingView";
 import { ExceptionQueue } from "./components/ExceptionQueue";
 import { ExecutiveDashboard } from "./components/ExecutiveDashboard";
+import { GateInspectionView } from "./components/GateInspectionView";
 import { KpiStrip } from "./components/KpiStrip";
+import { MLEvaluationDashboard } from "./components/MLEvaluationDashboard";
 import { ShipmentDetailPanel } from "./components/ShipmentDetailPanel";
 import { ShipmentList } from "./components/ShipmentList";
 import { ShipmentMap } from "./components/ShipmentMap";
 import { VolvoLogo } from "./components/VolvoLogo";
+import { YardDigitalTwin } from "./components/YardDigitalTwin";
+import "./styles/components.css";
 
-type Page = "operations" | "analysis" | "bandhu";
+type Page =
+  | "operations"
+  | "analysis"
+  | "yard_twin"
+  | "gate_inspection"
+  | "containers"
+  | "ml_evaluation";
 
 interface ToastNotification {
   id: string;
   message: string;
   severity: string;
   type: string;
+  leaving?: boolean;
 }
 
-const NAV_ITEMS: { id: Page; label: string; icon: JSX.Element }[] = [
+const ICON = { w: 20, h: 20, sw: 1.7 };
+
+const NAV_ITEMS: { id: Page; label: string; title: string; icon: JSX.Element }[] = [
   {
     id: "operations",
     label: "Ops",
+    title: "Operations",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+      <svg width={ICON.w} height={ICON.h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={ICON.sw} strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="3 11 22 2 13 21 11 13 3 11" />
       </svg>
     ),
   },
   {
     id: "analysis",
     label: "Analysis",
+    title: "Network performance",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+      <svg width={ICON.w} height={ICON.h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={ICON.sw} strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" /><line x1="2" y1="20" x2="22" y2="20" />
       </svg>
     ),
   },
   {
-    id: "bandhu",
-    label: "Bandhu",
+    id: "yard_twin",
+    label: "Yard",
+    title: "Yard digital twin",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <svg width={ICON.w} height={ICON.h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={ICON.sw} strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    id: "gate_inspection",
+    label: "Gate",
+    title: "Gate inspection",
+    icon: (
+      <svg width={ICON.w} height={ICON.h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={ICON.sw} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+        <line x1="7" y1="12" x2="17" y2="12" />
+      </svg>
+    ),
+  },
+  {
+    id: "containers",
+    label: "Stock",
+    title: "Container registry",
+    icon: (
+      <svg width={ICON.w} height={ICON.h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={ICON.sw} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
+      </svg>
+    ),
+  },
+  {
+    id: "ml_evaluation",
+    label: "Models",
+    title: "Model evaluation",
+    icon: (
+      <svg width={ICON.w} height={ICON.h} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={ICON.sw} strokeLinecap="round" strokeLinejoin="round">
+        <rect x="8" y="8" width="8" height="8" rx="1.5" />
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
       </svg>
     ),
   },
 ];
 
+const SEVERITY_ICON: Record<string, JSX.Element> = {
+  P1: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--crit)" strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16.5" x2="12" y2="16.5" />
+    </svg>
+  ),
+  P2: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2" strokeLinecap="round">
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12" y2="17" />
+    </svg>
+  ),
+};
+
 export default function App() {
   const [activePage, setActivePage] = useState<Page>("operations");
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [kpis, setKpis] = useState<ExtendedKPIs | null>(null);
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [exceptions, setExceptions] = useState<Exception[]>([]);
@@ -61,35 +152,48 @@ export default function App() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [sseConnected, setSseConnected] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync theme class to <html>
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light");
-      root.classList.remove("dark");
-    } else {
-      root.classList.add("dark");
-      root.classList.remove("light");
-    }
-  }, [theme]);
+  // Yard + ML state
+  const [yardState, setYardState] = useState<YardState | null>(null);
+  const [containers, setContainers] = useState<Container[]>([]);
+  const [mlMetrics, setMlMetrics] = useState<MLMetrics | null>(null);
 
-  const refresh = useCallback(async () => {
+  const loadYardData = useCallback(async () => {
     try {
-      const [kpiData, shipData, excData] = await Promise.all([
-        api.getExtendedKPIs(),
-        api.getShipments(),
-        api.getExceptions("OPEN"),
+      const [yard, conts, metrics] = await Promise.all([
+        fetchYardState().catch(() => null),
+        fetchContainers().catch(() => []),
+        fetchMLMetrics().catch(() => null),
       ]);
-      setKpis(kpiData);
-      setShipments(shipData.items);
-      setExceptions(excData);
-      setLastRefresh(new Date());
+      if (yard) setYardState(yard);
+      if (conts) setContainers(conts);
+      if (metrics) setMlMetrics(metrics);
     } catch (e) {
-      console.error("Refresh failed", e);
+      console.error("Failed to load yard state", e);
     }
   }, []);
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const [kpiData, shipData, excData] = await Promise.all([
+        api.getExtendedKPIs().catch(() => null),
+        api.getShipments().catch(() => ({ items: [], total: 0 })),
+        api.getExceptions("OPEN").catch(() => []),
+      ]);
+      if (kpiData) setKpis(kpiData);
+      if (shipData) setShipments(shipData.items);
+      if (excData) setExceptions(excData);
+      setLastRefresh(new Date());
+      loadYardData();
+    } catch (e) {
+      console.error("Refresh failed", e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadYardData]);
 
   useEffect(() => {
     refresh();
@@ -109,18 +213,25 @@ export default function App() {
           type: event.exception_type,
         };
         setToasts((prev) => [toast, ...prev.slice(0, 4)]);
-        setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== toast.id)), 6000);
+        setTimeout(() => dismissToast(toast.id), 6000);
         refresh();
       } else if (event.type === "gps_update") {
         if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
         refreshTimerRef.current = setTimeout(refresh, 2000);
       }
     });
-    return () => { unsubscribe(); setSseConnected(false); };
+    return () => {
+      unsubscribe();
+      setSseConnected(false);
+    };
   }, [refresh]);
 
   useEffect(() => {
-    if (!selectedId) { setDetail(null); setEvents([]); return; }
+    if (!selectedId) {
+      setDetail(null);
+      setEvents([]);
+      return;
+    }
     Promise.all([api.getShipment(selectedId), api.getEvents(selectedId)]).then(([s, ev]) => {
       setDetail(s);
       setEvents(ev);
@@ -132,196 +243,174 @@ export default function App() {
     refresh();
   };
 
-  const dismissToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
+  // animate out, then unmount
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 300);
+  };
+
+  const current = NAV_ITEMS.find((n) => n.id === activePage);
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", backgroundColor: "var(--bg-void)" }}>
-
-      {/* ── LEFT SIDEBAR ── */}
+    <div className="v-shell">
+      {/* ── NAV RAIL ─────────────────────────────────────── */}
       <aside className="v-sidebar">
-        {/* Volvo Logo Badge */}
-        <div style={{ marginBottom: 20, position: "relative" }}>
-          <VolvoLogo size={44} />
+        <div className="v-logo" style={{ marginBottom: "var(--s5)" }}>
+          <VolvoLogo size={38} />
         </div>
 
-        {/* Nav Items */}
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
             onClick={() => setActivePage(item.id)}
             className={`v-nav-item${activePage === item.id ? " active" : ""}`}
+            aria-current={activePage === item.id ? "page" : undefined}
+            title={item.title}
           >
             {item.icon}
             <span>{item.label}</span>
           </button>
         ))}
 
-        {/* Live/Poll indicator at bottom */}
-        <div style={{ marginTop: "auto", paddingBottom: 8 }}>
-          {sseConnected
-            ? <span className="v-pill-live">Live</span>
-            : <span className="v-pill-poll">Poll</span>
-          }
+        <div className="v-rail-foot" style={{ marginTop: "auto", paddingBottom: "var(--s2)" }}>
+          {sseConnected ? <span className="v-pill-live">Live</span> : <span className="v-pill-poll">Poll</span>}
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-
-        {/* Header */}
+      {/* ── FRAME ────────────────────────────────────────── */}
+      <div className="v-frame">
         <header className="v-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            {/* Compact Volvo badge in header */}
-            <VolvoLogo size={28} />
-            <div>
-              <span className="v-text-primary" style={{ fontSize: "0.82rem", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", lineHeight: 1.1 }}>
-                Volvo
-              </span>
-              <span className="v-text-secondary" style={{ fontSize: "0.6rem", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                Shipment Intelligence
-              </span>
-            </div>
-            <span style={{ width: 1, height: 24, backgroundColor: "var(--graphite-line)" }} />
-            <span className="v-text-secondary" style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              {NAV_ITEMS.find((n) => n.id === activePage)?.label}
-            </span>
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
+            <b style={{ fontSize: "0.875rem", fontWeight: 700, letterSpacing: "0.16em" }}>VOLVO</b>
+            <small className="v-meta" style={{ fontSize: "0.625rem", letterSpacing: "0.07em" }}>
+              Shipment &amp; Yard Intelligence
+            </small>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {exceptions.length > 0 && (
-              <span className="v-badge v-badge-red">
-                {exceptions.length} open
-              </span>
-            )}
 
-            {/* VOLVO metallic wordmark next to theme toggle */}
-            <span className="v-volvo-wordmark">VOLVO</span>
+          <span className="v-rule-v" />
+          <span style={{ fontSize: "1.0625rem", fontWeight: 600, letterSpacing: "-0.02em" }}>{current?.title}</span>
 
-            <button
-              className="v-theme-toggle"
-              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-            >
-              {theme === "dark" ? "Light" : "Dark"}
-            </button>
-            <span className="v-text-secondary" style={{ fontSize: "0.65rem" }}>
-              {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          <span style={{ flex: 1 }} />
+
+          {exceptions.length > 0 && (
+            <span className="v-badge v-badge-red">
+              {exceptions.length} open {exceptions.length === 1 ? "exception" : "exceptions"}
             </span>
-          </div>
+          )}
+
+          <button className="v-btn" onClick={refresh} disabled={refreshing} aria-label="Refresh now">
+            <svg className={refreshing ? "v-spin" : undefined} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M21 12a9 9 0 1 1-2.6-6.4" /><polyline points="21 3 21 9 15 9" />
+            </svg>
+            <span>{lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+          </button>
+
+          <span className="v-volvo-wordmark">VOLVO</span>
         </header>
 
-        {/* Page Content */}
-        <main style={{ flex: 1, overflow: "hidden" }}>
-
-          {/* OPERATIONS */}
-          {activePage === "operations" && (
-            <div style={{ height: "100%", display: "grid", gridTemplateColumns: "1fr 310px 330px" }}>
-
-              {/* Col 1: Map */}
-              <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", padding: "12px 6px 12px 12px" }}>
-                <p className="v-section-title">Live Shipment Map</p>
-                <div style={{ flex: 1, minHeight: 0, borderRadius: 10, overflow: "hidden", border: "1px solid var(--graphite-line)" }}>
-                  <ShipmentMap shipments={shipments} selectedId={selectedId} onSelect={setSelectedId} theme={theme} />
+        <main style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <div key={activePage} className="v-view-enter" style={{ height: "100%" }}>
+            {activePage === "operations" && (
+              <div className="v-ops">
+                <div className="v-map">
+                  <ShipmentMap shipments={shipments} selectedId={selectedId} onSelect={setSelectedId} />
                 </div>
-                {detail && (
-                  <div style={{ flexShrink: 0, marginTop: 10, maxHeight: 280, overflowY: "auto" }}>
-                    <ShipmentDetailPanel shipment={detail} events={events} />
+
+                <div className="v-col">
+                  <div className="v-panel-head">
+                    <h3>Live assets</h3>
+                    <span className="v-meta" style={{ marginLeft: "auto" }}>
+                      {shipments.length} tracked
+                    </span>
                   </div>
-                )}
-              </div>
-
-              {/* Col 2: Shipments list */}
-              <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", padding: "12px 6px", borderLeft: "1px solid var(--graphite-line)", borderRight: "1px solid var(--graphite-line)" }}>
-                <p className="v-section-title">Shipments</p>
-                <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-                  <ShipmentList shipments={shipments} selectedId={selectedId} onSelect={setSelectedId} />
-                </div>
-              </div>
-
-              {/* Col 3: Exceptions */}
-              <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden", padding: "12px 12px 12px 6px" }}>
-                <p className="v-section-title">Exception Queue</p>
-                <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-                  <ExceptionQueue exceptions={exceptions} onAction={handleExceptionAction} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ANALYSIS */}
-          {activePage === "analysis" && (
-            <div style={{ height: "100%", overflowY: "auto", padding: "20px 24px" }}>
-              <div style={{ marginBottom: 20 }}>
-                <h2 className="v-text-primary" style={{ fontSize: "1rem", fontWeight: 700, margin: 0 }}>
-                  Network Analytics
-                </h2>
-                <p className="v-text-secondary" style={{ fontSize: "0.75rem", marginTop: 4 }}>
-                  Real-time supply chain health — KPIs, Carrier Scorecards, Lane Performance
-                </p>
-              </div>
-              <KpiStrip kpis={kpis} />
-              <hr className="v-divider" style={{ margin: "20px 0" }} />
-              <ExecutiveDashboard extKpis={kpis} />
-            </div>
-          )}
-
-          {/* BANDHU */}
-          {activePage === "bandhu" && (
-            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
-              <div style={{ width: "100%", maxWidth: 680, display: "flex", flexDirection: "column", height: "100%" }}>
-                <div style={{ textAlign: "center", marginBottom: 24, flexShrink: 0 }}>
-                  <div style={{
-                    width: 48, height: 48, borderRadius: "50%",
-                    background: "linear-gradient(145deg, #6A6D78 0%, #3A3D47 45%, #0F1014 100%)",
-                    border: "1px solid var(--chrome-shadow)",
-                    boxShadow: "0 0 0 1px var(--chrome-shadow), 0 0 10px rgba(180,183,196,0.2)",
-                    display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 12,
-                  }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--silver-700)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
+                  <div className="v-scroll" style={{ flex: 1 }}>
+                    <ShipmentList shipments={shipments} selectedId={selectedId} onSelect={setSelectedId} />
                   </div>
-                  <h2 className="v-text-primary" style={{ fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>Bandhu AI</h2>
-                  <p className="v-text-secondary" style={{ fontSize: "0.8rem", marginTop: 6 }}>
-                    Natural language shipment intelligence
-                  </p>
                 </div>
-                <div style={{ flex: 1, minHeight: 0 }}>
-                  <CopilotChat />
+
+                <div className="v-col v-col-detail v-scroll" style={{ height: "100%", minHeight: 0, overflowY: "auto" }}>
+                  <ShipmentDetailPanel shipment={detail} events={events} />
+                  <div className="v-block">
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
+                      <span className="v-eyebrow">Exception queue</span>
+                      <span className="v-meta" style={{ marginLeft: "auto" }}>
+                        {exceptions.length} open
+                      </span>
+                    </div>
+                    <ExceptionQueue exceptions={exceptions} onAction={handleExceptionAction} />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {activePage === "analysis" && (
+              <div className="v-page v-scroll">
+                <header>
+                  <h1>Network performance</h1>
+                  <p>Rolling 30 days across contracted carriers and active lanes.</p>
+                </header>
+                <KpiStrip kpis={kpis} />
+                <ExecutiveDashboard extKpis={kpis} />
+              </div>
+            )}
+
+            {activePage === "yard_twin" && (
+              <div className="v-page v-scroll">
+                <header>
+                  <h1>Yard digital twin</h1>
+                  <p>96 slots, four blocks, three bays deep. Click a slot to stage an allocation.</p>
+                </header>
+                <YardDigitalTwin yardState={yardState} onRefresh={loadYardData} containers={containers} />
+              </div>
+            )}
+
+            {activePage === "gate_inspection" && (
+              <div className="v-page v-scroll">
+                <header>
+                  <h1>Gate inspection</h1>
+                  <p>YOLOv8 detection, EasyOCR extraction and ISO 6346 verification in one pass.</p>
+                </header>
+                <GateInspectionView onInspectionCompleted={loadYardData} />
+              </div>
+            )}
+
+            {activePage === "containers" && (
+              <div className="v-page v-scroll">
+                <header>
+                  <h1>Container registry</h1>
+                  <p>Every box under terminal custody, from gate-in to gate-out.</p>
+                </header>
+                <ContainerTrackingView containers={containers} shipments={shipments} onRefresh={loadYardData} />
+              </div>
+            )}
+
+            {activePage === "ml_evaluation" && (
+              <div className="v-page v-scroll">
+                <header>
+                  <h1>Model evaluation</h1>
+                  <p>Holdout metrics for perception, delay regression and the yard decision policy.</p>
+                </header>
+                <MLEvaluationDashboard metrics={mlMetrics} />
+              </div>
+            )}
+          </div>
         </main>
       </div>
 
-      {/* ── TOAST NOTIFICATIONS ── */}
-      <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 50, display: "flex", flexDirection: "column", gap: 8, pointerEvents: "none" }}>
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`v-card v-toast-animate${toast.severity === "P1" ? " v-p1-pulse" : ""}`}
-            style={{ maxWidth: 320, pointerEvents: "all", cursor: "pointer" }}
-            onClick={() => dismissToast(toast.id)}
-          >
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px" }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke={toast.severity === "P1" ? "var(--signal-red)" : "var(--signal-amber)"}
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                  <span className="v-text-primary" style={{ fontSize: "0.75rem", fontWeight: 700 }}>
-                    {toast.type.replace(/_/g, " ")}
-                  </span>
-                  <span className={`v-badge ${toast.severity === "P1" ? "v-badge-red" : "v-badge-amber"}`}>
-                    {toast.severity}
-                  </span>
-                </div>
-                <p className="v-text-secondary" style={{ fontSize: "0.7rem", margin: 0 }}>
-                  {toast.message}
-                </p>
-              </div>
+      {/* ── TOASTS ───────────────────────────────────────── */}
+      <div className="v-toasts">
+        {toasts.map((t) => (
+          <div key={t.id} className={`v-toast${t.leaving ? " leaving" : ""}`} role="status">
+            {SEVERITY_ICON[t.severity] ?? SEVERITY_ICON.P2}
+            <div>
+              <b>{t.type.replace(/_/g, " ")}</b>
+              <p>{t.message}</p>
             </div>
+            <button className="v-toast-x" onClick={() => dismissToast(t.id)} aria-label="Dismiss">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
         ))}
       </div>

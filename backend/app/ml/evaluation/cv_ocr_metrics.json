@@ -1,0 +1,120 @@
+{
+  "total_test_images": 10,
+  "detection_success_rate_pct": 100.0,
+  "ocr_exact_match_accuracy_pct": 0.0,
+  "character_level_accuracy_pct": 0.0,
+  "iso_validation_accuracy_pct": 20.0,
+  "average_latency_ms": 337.34,
+  "detailed_results": [
+    {
+      "filename": "gate_test_01_mscu.jpg",
+      "expected_code": "MSCU7829108",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": true,
+      "latency_ms": 2654.69,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    },
+    {
+      "filename": "gate_test_02_cmau.jpg",
+      "expected_code": "CMAU5231901",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": true,
+      "latency_ms": 75.06,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    },
+    {
+      "filename": "gate_test_03_maeu.jpg",
+      "expected_code": "MAEU9182304",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": true,
+      "latency_ms": 71.2,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    },
+    {
+      "filename": "gate_test_04_hlcu.jpg",
+      "expected_code": "HLCU6029313",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": true,
+      "latency_ms": 84.38,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    },
+    {
+      "filename": "gate_test_05_oneu.jpg",
+      "expected_code": "ONEU3821095",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": true,
+      "latency_ms": 70.8,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    },
+    {
+      "filename": "gate_test_06_ever.jpg",
+      "expected_code": "EVER4910289",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": true,
+      "latency_ms": 86.24,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    },
+    {
+      "filename": "gate_test_07_cosu.jpg",
+      "expected_code": "COSU2481903",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": true,
+      "latency_ms": 84.4,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    },
+    {
+      "filename": "gate_test_08_zimu.jpg",
+      "expected_code": "ZIMU8501245",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": true,
+      "latency_ms": 85.6,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    },
+    {
+      "filename": "gate_test_09_mscu.jpg",
+      "expected_code": "MSCU1234569",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": false,
+      "latency_ms": 81.15,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    },
+    {
+      "filename": "gate_test_10_maeu.jpg",
+      "expected_code": "MAEU6543216",
+      "detected_code": "",
+      "is_exact_match": false,
+      "is_valid": false,
+      "expected_valid": false,
+      "latency_ms": 79.88,
+      "confidence": 0.0,
+      "message": "No valid 11-character container identifier detected"
+    }
+  ]
+}

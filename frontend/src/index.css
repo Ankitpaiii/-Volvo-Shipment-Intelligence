@@ -1,1079 +1,337 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=Big+Shoulders+Display:wght@900&display=swap');
+/* ══════════════════════════════════════════════════════════════════════════
+   KIRUNA DESIGN SYSTEM  v1.0
+   Volvo Shipment Intelligence & Container Yard Management Platform
+   Replaces: frontend/src/index.css  (drop-in, same class names)
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+   Direction: industrial daylight. Bone paper surfaces, one deep plum rail,
+   acid-lime signal colour, mono telemetry. No glass, no neon-on-black.
+   ══════════════════════════════════════════════════════════════════════════ */
 
-/* ══════════════════════════════════════════════════════════
-   VOLVO SHIPMENT INTELLIGENCE — OBSIDIAN & PLATINUM SYSTEM
-   Strict solid hex tokens. Zero rgba(). Zero color hues.
-   Only red/amber/green for shipment risk status.
-   ══════════════════════════════════════════════════════════ */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
-/* ── DARK THEME (default) — HEAVY SILVER EDITION ── */
-:root {
-  /* Backgrounds — lifted with silver undertone */
-  --bg-void:             #06060A;
-  --bg-void-line:        #0E0F14;
-  --bg-panel:            #111318;
-  --bg-panel-raised:     #1C1E24;
-  --panel-edge:          #2C2E35;
-  --graphite-line:       #3A3D47;
+:root{
+  /* ── surfaces ───────────────────────────────────────── */
+  --paper:      oklch(96.6% 0.008 95);
+  --paper-sunk: oklch(93.6% 0.011 95);
+  --surface:    oklch(99.2% 0.004 95);
+  --surface-2:  oklch(97.8% 0.007 95);
 
-  /* Silver / Chrome palette — much more vivid */
-  --platinum-100:        #EDEEF3;
-  --silver-300:          #D6D8DF;
-  --silver-500:          #A0A3AD;
-  --silver-700:          #C8CAD2;
-  --chrome-highlight:    #F8F9FB;
-  --chrome-specular:     #FFFFFF;
-  --chrome-mid:          #B0B3BC;
-  --chrome-shadow:       #4A4D58;
+  /* ── ink ────────────────────────────────────────────── */
+  --ink:   oklch(21% 0.018 330);
+  --ink-2: oklch(43% 0.015 330);
+  --ink-3: oklch(59% 0.012 330);
 
-  /* Signal colors — UNHOLY TAINTED. Deep dark. No pastels. */
-  --signal-red:          #B91C3C;   /* blood rose crimson — deep dark rose-red */
-  --signal-amber:        #6B21A8;   /* poison violet — bruised toxic purple */
-  --signal-green:        #0E7490;   /* abyss teal — deep ocean dark */
+  /* ── structure ──────────────────────────────────────── */
+  --line:   oklch(89% 0.010 330);
+  --line-2: oklch(80% 0.016 330);
 
-  /* Silver glow accents */
-  --silver-glow-soft:    rgba(180, 183, 196, 0.08);
-  --silver-glow-mid:     rgba(200, 202, 210, 0.15);
-  --silver-glow-strong:  rgba(232, 233, 238, 0.22);
+  /* ── brand ──────────────────────────────────────────── */
+  --plum:      oklch(38% 0.140 330);
+  --plum-deep: oklch(25.5% 0.095 330);
+  --plum-lift: oklch(31% 0.115 330);
+  --plum-soft: oklch(94% 0.028 330);
+
+  /* ── signal (rare, high impact) ─────────────────────── */
+  --acid:     oklch(86% 0.190 116);
+  --acid-ink: oklch(36% 0.095 116);
+
+  /* ── semantic ───────────────────────────────────────── */
+  --crit: oklch(52% 0.200 20);  --crit-soft: oklch(94.5% 0.035 20);  --crit-line: oklch(85% 0.065 20);
+  --warn: oklch(68% 0.150 62);  --warn-soft: oklch(95.5% 0.045 75);  --warn-line: oklch(86% 0.075 70);
+  --ok:   oklch(52% 0.120 165); --ok-soft:   oklch(94.5% 0.030 165); --ok-line:   oklch(85% 0.055 165);
+
+  /* ── type ───────────────────────────────────────────── */
+  --sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  /* modular scale, ratio 1.333 */
+  --t-xs: 0.6875rem;  /* 11px  mono labels          */
+  --t-sm: 0.8125rem;  /* 13px  metadata, table body */
+  --t-md: 1rem;       /* 16px  body                 */
+  --t-lg: 1.3125rem;  /* 21px  panel titles         */
+  --t-xl: 2rem;       /* 32px  page titles          */
+
+  /* ── spatial, 4pt base / 24px rhythm ────────────────── */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+
+  /* ── motion ─────────────────────────────────────────── */
+  --exp:   cubic-bezier(0.16, 1, 0.30, 1);
+  --quart: cubic-bezier(0.25, 1, 0.50, 1);
+  --inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --out:   cubic-bezier(0.70, 0, 0.84, 0);
+  --d-fast:140ms; --d-base:220ms; --d-slow:420ms; --d-enter:560ms;
+
+  /* ── elevation ──────────────────────────────────────── */
+  --e1: 0 1px 2px oklch(25% 0.06 330 / 0.06);
+  --e2: 0 2px 6px oklch(25% 0.06 330 / 0.07), 0 1px 2px oklch(25% 0.06 330 / 0.05);
+  --e3: 0 10px 28px oklch(25% 0.06 330 / 0.11), 0 2px 6px oklch(25% 0.06 330 / 0.06);
+
+  /* ── z-scale, semantic ──────────────────────────────── */
+  --z-base:1; --z-sticky:20; --z-drop:40; --z-toast:60; --z-tip:70;
+
+  --rail:92px; --topbar:60px;
+
+  /* ══ LEGACY TOKEN BRIDGE ══════════════════════════════
+     Old Obsidian/Platinum names remapped so any component
+     still using inline var() keeps rendering correctly. */
+  --bg-void:        var(--paper);
+  --bg-panel:       var(--surface);
+  --bg-panel-raised:var(--surface-2);
+  --graphite-line:  var(--line);
+  --platinum-100:   var(--ink);
+  --silver-700:     var(--ink-2);
+  --silver-500:     var(--ink-3);
 }
 
-/* ── LIGHT THEME — NORDIC METALLIC BLUE ── */
-/* Inspired by brushed steel-blue Volvo paint: #7090A8 midtone */
-.light {
-  /* Backgrounds — cool steel-blue foundation */
-  --bg-void:             #B8CAD8;   /* muted steel blue base */
-  --bg-void-line:        #AABFCE;   /* slightly deeper blue stripe */
-  --bg-panel:            #C8D8E4;   /* light blue-steel panel */
-  --bg-panel-raised:     #DAE7F0;   /* pale blue-white card */
-  --panel-edge:          #AABFCF;   /* blue-grey divider */
-  --graphite-line:       #8AAABF;   /* steel blue border */
+*,*::before,*::after{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:var(--t-md); line-height:1.5;
+  font-optical-sizing:auto; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+h1,h2,h3,h4{margin:0; font-weight:600; letter-spacing:-0.022em; text-wrap:balance}
+h1{font-size:var(--t-xl); line-height:1.12}
+h2{font-size:var(--t-lg)}
+h3{font-size:1.0625rem}
+h4{font-size:0.9375rem}
+p{margin:0; text-wrap:pretty}
+button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
+table{border-collapse:collapse; width:100%}
+code,pre{font-family:var(--mono); font-variant-ligatures:none}
+::selection{background:var(--acid); color:var(--acid-ink)}
 
-  /* Ink / Navy — cool deep tones for text */
-  --platinum-100:        #122030;   /* deep navy ink */
-  --silver-300:          #4A6878;   /* medium blue-steel */
-  --silver-500:          #3A5868;   /* blue-grey text */
-  --silver-700:          #0E1E2E;   /* near-black navy */
-  --chrome-highlight:    #0E1E2E;   /* inverted: dark navy */
-  --chrome-specular:     #EEF4F8;   /* inverted: pale ice */
-  --chrome-mid:          #6A88A0;   /* blue-grey mid */
-  --chrome-shadow:       #98B2C4;   /* cool blue-steel shadow */
+/* one focus ring, everywhere, keyboard only */
+:focus-visible{outline:2px solid var(--plum); outline-offset:2px; border-radius:3px}
 
-  /* Signal colors — zero red/green/yellow. Cool-on-blue tricolor. */
-  --signal-red:          #C026D3;   /* deep magenta: critical on blue bg */
-  --signal-amber:        #7C3AED;   /* deep violet: caution on blue bg */
-  --signal-green:        #0891B2;   /* deep teal-cyan: nominal on blue bg */
+/* ── scrollbars ─────────────────────────────────────────── */
+.v-scroll,.scroll{overflow:auto; scrollbar-width:thin; scrollbar-color:var(--line-2) transparent; scroll-behavior:smooth}
+.v-scroll::-webkit-scrollbar,.scroll::-webkit-scrollbar{width:9px;height:9px}
+.v-scroll::-webkit-scrollbar-track,.scroll::-webkit-scrollbar-track{background:transparent}
+.v-scroll::-webkit-scrollbar-thumb,.scroll::-webkit-scrollbar-thumb{
+  background:var(--line-2); border:3px solid var(--paper); border-radius:99px;
+}
+.v-scroll::-webkit-scrollbar-thumb:hover,.scroll::-webkit-scrollbar-thumb:hover{background:var(--ink-3)}
 
-  /* Blue-steel glow accents */
-  --silver-glow-soft:    rgba(74, 104, 120, 0.08);
-  --silver-glow-mid:     rgba(58, 88, 104, 0.15);
-  --silver-glow-strong:  rgba(14, 30, 46, 0.22);
+/* ══ TYPOGRAPHY UTILITIES ════════════════════════════════ */
+.v-eyebrow{
+  font-family:var(--mono); font-size:var(--t-xs); font-weight:600;
+  letter-spacing:0.11em; text-transform:uppercase; color:var(--ink-3);
+}
+.v-num,.v-mono{font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-0.02em}
+.v-meta{font-family:var(--mono); font-size:0.75rem; color:var(--ink-3); font-variant-numeric:tabular-nums}
+.v-text-primary{color:var(--ink)}
+.v-text-secondary{color:var(--ink-2)}
+.v-text-muted{color:var(--ink-3)}
+.v-prose{max-width:70ch}
 
-  /* Glassmorphism tokens — frosted steel-blue glass */
-  --glass-bg:            rgba(218, 231, 240, 0.70);
-  --glass-border:        rgba(138, 170, 191, 0.55);
-  --glass-blur:          14px;
-  --glass-shadow:        0 4px 28px rgba(14, 30, 46, 0.16), 0 1px 5px rgba(14, 30, 46, 0.09);
+/* ══ SIDEBAR RAIL — the only dark surface in the product ══ */
+.v-sidebar{
+  width:var(--rail); flex:none; background:var(--plum-deep); color:oklch(93% 0.02 330);
+  display:flex; flex-direction:column; align-items:center; gap:var(--s1);
+  padding:var(--s5) var(--s2) var(--s4); position:relative; z-index:2;
+}
+.v-nav-item{
+  width:100%; padding:11px 4px 9px; border-radius:var(--r-sm); position:relative;
+  display:grid; justify-items:center; gap:5px; color:oklch(78% 0.028 330);
+  transition:color var(--d-fast) var(--quart), background-color var(--d-fast) var(--quart);
+}
+.v-nav-item > svg{width:20px;height:20px}
+.v-nav-item > span{
+  font-family:var(--mono); font-size:0.625rem; font-weight:500;
+  letter-spacing:0.055em; text-transform:uppercase;
+}
+.v-nav-item::before{
+  content:""; position:absolute; left:-8px; top:50%; width:3px; height:0;
+  background:var(--acid); border-radius:0 3px 3px 0;
+  transform:translateY(-50%); transition:height var(--d-base) var(--exp);
+}
+.v-nav-item:hover{color:oklch(97% 0.01 330); background:var(--plum-lift)}
+.v-nav-item.active{color:oklch(98% 0.008 330); background:var(--plum)}
+.v-nav-item.active::before{height:26px}
+
+.v-pill-live,.v-pill-poll{
+  font-family:var(--mono); font-size:0.625rem; font-weight:600; letter-spacing:0.09em;
+  text-transform:uppercase; padding:4px 9px; border-radius:99px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.v-pill-live{background:var(--acid); color:var(--acid-ink)}
+.v-pill-poll{background:var(--plum-lift); color:oklch(80% 0.03 330)}
+.v-pill-live::before{
+  content:""; width:5px; height:5px; border-radius:99px; background:var(--acid-ink);
+  animation:v-beat 1.9s var(--inout) infinite;
+}
+@keyframes v-beat{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.72)}}
+
+/* ══ HEADER ══════════════════════════════════════════════ */
+.v-header{
+  height:var(--topbar); flex:none; display:flex; align-items:center; gap:var(--s4);
+  padding:0 var(--s5); background:var(--surface); border-bottom:1px solid var(--line);
+}
+.v-volvo-wordmark{
+  font-family:var(--mono); font-size:0.75rem; font-weight:600;
+  letter-spacing:0.34em; color:var(--ink-2);
+}
+.v-rule-v{width:1px; height:26px; background:var(--line); flex:none}
+
+/* ══ BUTTONS ═════════════════════════════════════════════ */
+.v-btn,.v-theme-toggle{
+  font-family:var(--mono); font-size:0.75rem; font-weight:500; letter-spacing:0.03em;
+  padding:7px 13px; border-radius:7px; border:1px solid var(--line-2);
+  background:var(--surface); color:var(--ink);
+  display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
+  transition:background-color var(--d-fast) var(--quart), border-color var(--d-fast) var(--quart),
+             transform 100ms var(--quart), box-shadow var(--d-fast) var(--quart);
+}
+.v-btn:hover,.v-theme-toggle:hover{background:var(--paper-sunk); border-color:var(--ink-3); box-shadow:var(--e1)}
+.v-btn:active,.v-theme-toggle:active{transform:translateY(1px); box-shadow:none}
+.v-btn > svg{width:14px;height:14px}
+.v-btn-key{background:var(--plum); border-color:var(--plum); color:oklch(97% 0.01 330)}
+.v-btn-key:hover{background:var(--plum-lift); border-color:var(--plum-lift); color:oklch(99% 0.005 330)}
+.v-btn-danger{background:var(--crit-soft); border-color:var(--crit-line); color:var(--crit)}
+.v-btn-danger:hover{background:var(--crit); border-color:var(--crit); color:oklch(97% 0.01 20)}
+.v-btn-sm{padding:5px 10px; font-size:var(--t-xs)}
+.v-btn[disabled],.v-btn[aria-disabled="true"]{opacity:.45; cursor:not-allowed}
+.v-btn[disabled]:hover{background:var(--surface); border-color:var(--line-2); box-shadow:none; transform:none}
+.v-btn-block{width:100%; justify-content:center}
+
+/* ══ CHIPS / FILTERS ═════════════════════════════════════ */
+.v-chip{
+  font-family:var(--mono); font-size:var(--t-xs); font-weight:500; letter-spacing:0.04em;
+  padding:6px 11px; border-radius:99px; background:var(--surface);
+  border:1px solid var(--line-2); color:var(--ink-2);
+  transition:color var(--d-fast) var(--quart), border-color var(--d-fast) var(--quart),
+             background-color var(--d-fast) var(--quart), transform var(--d-fast) var(--quart);
+}
+.v-chip:hover{border-color:var(--plum); color:var(--plum); transform:translateY(-1px)}
+.v-chip.active{background:var(--ink); border-color:var(--ink); color:var(--paper)}
+.v-filter-strip{
+  display:flex; gap:5px; flex-wrap:wrap; padding:var(--s3) var(--s4);
+  border-bottom:1px solid var(--line); background:var(--surface-2);
 }
 
-/* ══════════════════════════════════════════════════════════
-   BASE RESET
-   ══════════════════════════════════════════════════════════ */
+/* ══ BADGES / TAGS ═══════════════════════════════════════ */
+.v-badge,.v-tag{
+  font-family:var(--mono); font-size:var(--t-xs); font-weight:600; letter-spacing:0.04em;
+  padding:4px 9px; border-radius:5px; border:1px solid var(--line-2);
+  background:var(--surface-2); color:var(--ink-2); white-space:nowrap; display:inline-block;
+}
+.v-badge-red,.v-tag-crit{background:var(--crit-soft); border-color:var(--crit-line); color:var(--crit)}
+.v-badge-amber,.v-tag-warn{background:var(--warn-soft); border-color:var(--warn-line); color:oklch(46% 0.11 62)}
+.v-badge-green,.v-tag-ok{background:var(--ok-soft); border-color:var(--ok-line); color:var(--ok)}
+.v-tag-acid{background:var(--acid); border-color:var(--acid); color:var(--acid-ink)}
+.v-prio-p1{
+  font-family:var(--mono); font-size:0.625rem; font-weight:600; letter-spacing:0.08em;
+  padding:2px 6px; border-radius:4px; background:var(--crit); color:oklch(97% 0.01 20);
+}
+.v-prio-p2{
+  font-family:var(--mono); font-size:0.625rem; font-weight:600; letter-spacing:0.08em;
+  padding:2px 6px; border-radius:4px; background:var(--warn-soft);
+  color:oklch(46% 0.11 62); border:1px solid var(--warn-line);
+}
+.v-dot{width:8px; height:8px; border-radius:99px; box-shadow:0 0 0 3px var(--surface); display:inline-block}
+.v-dot-crit{background:var(--crit)} .v-dot-warn{background:var(--warn)} .v-dot-ok{background:var(--ok)}
 
-*, *::before, *::after {
-  box-sizing: border-box;
+/* ══ LAYOUT PRIMITIVES ═══════════════════════════════════ */
+.v-shell{display:flex; height:100vh; overflow:hidden}
+.v-frame{flex:1; display:flex; flex-direction:column; min-width:0}
+.v-col{
+  border-left:1px solid var(--line); min-width:0; background:var(--surface);
+  display:flex; flex-direction:column;
+}
+.v-panel-head{
+  flex:none; padding:var(--s4) var(--s4) var(--s3); display:flex; align-items:baseline; gap:var(--s2);
+  position:sticky; top:0; background:var(--surface); border-bottom:1px solid var(--line); z-index:var(--z-sticky);
+}
+.v-panel-head h3{font-size:0.9375rem}
+.v-block{padding:var(--s5) var(--s4); border-bottom:1px solid var(--line)}
+.v-block-tight{padding:var(--s4)}
+.v-page{height:100%; overflow:auto; padding:var(--s6) var(--s7) var(--s8); max-width:1520px}
+.v-page > header{margin-bottom:var(--s6)}
+.v-page > header p{color:var(--ink-2); margin-top:6px; max-width:68ch; font-size:0.9375rem}
+.v-grid-auto{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:var(--s5)}
+
+/* ══ VIEW TRANSITIONS ════════════════════════════════════ */
+.v-view-enter{animation:v-viewin var(--d-slow) var(--exp) both}
+@keyframes v-viewin{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+/* ══ TOASTS ══════════════════════════════════════════════ */
+.v-toasts{
+  position:fixed; right:var(--s5); bottom:var(--s5); width:340px;
+  display:grid; gap:var(--s2); z-index:var(--z-toast);
+}
+.v-toast{
+  display:grid; grid-template-columns:auto 1fr auto; gap:var(--s3); align-items:start;
+  padding:var(--s3) var(--s4); border-radius:11px; background:var(--surface);
+  border:1px solid var(--line-2); box-shadow:var(--e3);
+  animation:v-toastin var(--d-slow) var(--exp) both;
+}
+.v-toast.leaving{animation:v-toastout 300ms var(--out) forwards}
+@keyframes v-toastin{from{opacity:0; transform:translateX(28px) scale(.97)} to{opacity:1; transform:none}}
+@keyframes v-toastout{to{opacity:0; transform:translateX(28px) scale(.97)}}
+.v-toast b{font-size:0.875rem; display:block}
+.v-toast p{font-size:var(--t-sm); color:var(--ink-2); margin-top:1px}
+.v-toast-x{
+  width:22px; height:22px; border-radius:5px; color:var(--ink-3);
+  display:grid; place-content:center; transition:background-color var(--d-fast), color var(--d-fast);
+}
+.v-toast-x:hover{background:var(--paper-sunk); color:var(--ink)}
+
+/* ══ LOADING / EMPTY / ERROR ═════════════════════════════ */
+.v-skeleton{
+  background:linear-gradient(90deg,var(--paper-sunk) 0%,var(--surface-2) 50%,var(--paper-sunk) 100%);
+  background-size:200% 100%; animation:v-shimmer 1.4s linear infinite; border-radius:5px;
+}
+@keyframes v-shimmer{to{background-position:-200% 0}}
+.v-spin{animation:v-spin 900ms linear infinite}
+@keyframes v-spin{to{transform:rotate(360deg)}}
+.v-empty{padding:var(--s7) var(--s4); text-align:center; display:grid; gap:6px; justify-items:center}
+.v-empty > svg{width:26px; height:26px; color:var(--ok)}
+.v-empty p{font-size:var(--t-sm); color:var(--ink-3); max-width:34ch}
+.v-error{
+  display:flex; gap:var(--s3); align-items:flex-start; padding:var(--s4);
+  border:1px solid var(--crit-line); background:var(--crit-soft); border-radius:var(--r-md);
+}
+.v-error b{font-size:0.9375rem; color:var(--crit)}
+.v-error p{font-size:var(--t-sm); color:var(--ink-2); margin-top:2px}
+
+/* ══ STAGGER + SCROLL REVEAL ═════════════════════════════ */
+.v-stagger{animation:v-rowin var(--d-enter) var(--exp) both; animation-delay:calc(var(--i,0) * 38ms)}
+@keyframes v-rowin{from{opacity:0; transform:translateX(-10px)} to{opacity:1; transform:none}}
+.v-reveal{opacity:0; transform:translateY(14px)}
+.v-reveal.in{
+  opacity:1; transform:none;
+  transition:opacity 550ms var(--exp), transform 550ms var(--exp);
+  transition-delay:calc(var(--i,0) * 55ms);
 }
 
-body {
-  font-family: 'DM Sans', 'Inter', -apple-system, sans-serif;
-  background-color: var(--bg-void);
-  background-image: repeating-linear-gradient(
-    115deg,
-    var(--bg-void) 0px, var(--bg-void) 2px,
-    var(--bg-void-line) 2px, var(--bg-void-line) 3px,
-    var(--bg-void) 3px, var(--bg-void) 40px
-  );
-  color: var(--platinum-100);
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
+/* ══ RESPONSIVE: rebuilt per context, not shrunk ═════════ */
+@media (max-width:1400px){
+  .v-page{padding:var(--s5) var(--s5) var(--s8)}
 }
-
-/* ══════════════════════════════════════════════════════════
-   SEMANTIC LAYOUT CLASSES
-   ══════════════════════════════════════════════════════════ */
-
-/* ── SIDEBAR ── */
-.v-sidebar {
-  background-color: var(--bg-panel);
-  border-right: 1px solid var(--graphite-line);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 0;
-  gap: 4px;
-  width: 76px;
-  flex-shrink: 0;
-  z-index: 30;
-}
-
-/* ── NAV ITEM ── */
-.v-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 14px 4px;
-  width: 100%;
-  cursor: pointer;
-  color: var(--silver-500);
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border-left: 2px solid transparent;
-  border-radius: 0 6px 6px 0;
-  transition: color 0.18s ease, background-color 0.18s ease;
-  user-select: none;
-}
-
-.v-nav-item:hover {
-  color: var(--silver-700);
-  background-color: var(--bg-panel-raised);
-}
-
-/* Active: inverted fill — the sole active signal */
-.v-nav-item.active {
-  color: var(--bg-void);
-  background-color: var(--chrome-highlight);
-  border-left: 2px solid var(--chrome-highlight);
-  border-radius: 0 6px 6px 0;
-}
-
-/* Light mode: metallic blue glow on active nav item */
-.light .v-nav-item.active {
-  color: var(--chrome-specular);
-  background: linear-gradient(135deg, #1E3A52 0%, #0E1E2E 100%);
-  border-left: 3px solid #6AAAD0;
-  box-shadow: 3px 0 16px rgba(100, 160, 210, 0.28), inset 0 0 0 1px rgba(100,160,210,0.15);
-}
-
-/* Light mode: hover with cool blue tint */
-.light .v-nav-item:hover {
-  color: var(--silver-700);
-  background-color: rgba(58, 88, 104, 0.10);
-}
-
-/* ── HEADER ── */
-.v-header {
-  background-color: var(--bg-panel);
-  border-bottom: 1px solid var(--graphite-line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  height: 52px;
-  flex-shrink: 0;
-  z-index: 20;
-}
-
-/* ── CARD ── */
-.v-card {
-  background-color: var(--bg-panel-raised);
-  border: 1px solid var(--graphite-line);
-  border-top: 1px solid var(--panel-edge);
-  border-radius: 10px;
-  transition: border-color 0.18s ease, box-shadow 0.25s ease;
-  overflow: hidden;
-  /* Subtle depth inner shadow — machined pocket feel */
-  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.06);
-}
-
-/* Glassmorphism in light mode */
-.light .v-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border-color: var(--glass-border);
-  box-shadow: var(--glass-shadow), inset 0 -1px 0 rgba(90,80,65,0.05);
-}
-.light .v-card:hover {
-  box-shadow: var(--glass-shadow), 0 8px 32px rgba(90, 80, 65, 0.16), inset 0 -1px 0 rgba(90,80,65,0.05);
-}
-
-/* Card header row */
-.v-card-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--graphite-line);
-}
-
-/* ── LOGO BADGE ── */
-.v-logo-badge {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #6A6D78 0%, #3A3D47 40%, #0F1014 100%);
-  border: 1px solid var(--chrome-shadow);
-  box-shadow: 0 0 0 1px var(--chrome-shadow), 0 0 8px rgba(180,183,196,0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.light .v-logo-badge {
-  background: linear-gradient(145deg, #FFFFFF 0%, #E2E4EC 50%, #C4C7D2 100%);
-  border-color: var(--graphite-line);
-  box-shadow: 0 0 0 1px var(--chrome-shadow), 0 0 6px rgba(100,103,115,0.15);
-}
-
-/* ── STATUS / LIVE PILL ── */
-.v-pill-live {
-  background-color: var(--chrome-highlight);
-  color: var(--bg-void);
-  font-size: 0.55rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-/* polling state */
-.v-pill-poll {
-  background-color: var(--bg-panel-raised);
-  color: var(--silver-500);
-  border: 1px solid var(--graphite-line);
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 9999px;
-}
-
-/* ── STATUS BADGE ── */
-.v-badge {
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 9999px;
-  border: 1px solid currentColor;
-}
-
-.v-badge-red    { color: var(--signal-red);   border-color: var(--signal-red); }
-.v-badge-amber  { color: var(--signal-amber);  border-color: var(--signal-amber); }
-.v-badge-green  { color: var(--signal-green);  border-color: var(--signal-green); }
-.v-badge-muted  { color: var(--silver-500); border-color: var(--graphite-line); }
-
-/* ── FILTER PILL ── */
-.v-filter-pill {
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 9999px;
-  border: 1px solid var(--graphite-line);
-  background-color: transparent;
-  color: var(--silver-500);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.v-filter-pill:hover {
-  color: var(--silver-700);
-  border-color: var(--silver-500);
-}
-
-.v-filter-pill.active {
-  background-color: var(--chrome-highlight);
-  color: var(--bg-void);
-  border-color: var(--chrome-highlight);
-}
-
-/* ── INPUT ── */
-.v-input {
-  width: 100%;
-  background-color: var(--bg-panel);
-  border: 1px solid var(--graphite-line);
-  border-radius: 7px;
-  color: var(--platinum-100);
-  font-family: 'DM Sans', 'Inter', sans-serif;
-  font-size: 0.75rem;
-  padding: 8px 12px 8px 32px;
-  outline: none;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.v-input::placeholder {
-  color: var(--silver-500);
-}
-
-/* Dark mode: silver shimmer focus ring */
-.v-input:focus {
-  border-color: var(--silver-700);
-  box-shadow: 0 0 0 2px rgba(200, 202, 210, 0.15), 0 0 0 1px var(--silver-700);
-}
-
-/* Light mode: warm amber-ink focus ring */
-.light .v-input:focus {
-  border-color: var(--silver-700);
-  box-shadow: 0 0 0 2px rgba(112, 104, 96, 0.18), 0 0 0 1px var(--silver-700);
-  background-color: var(--bg-panel-raised);
-}
-
-/* ── BUTTON PRIMARY (inverted) ── */
-.v-btn-primary {
-  background-color: var(--chrome-highlight);
-  color: var(--bg-void);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 8px 18px;
-  border-radius: 7px;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-  white-space: nowrap;
-}
-
-.v-btn-primary:hover { opacity: 0.9; }
-.v-btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
-
-/* ── BUTTON GHOST ── */
-.v-btn-ghost {
-  background-color: transparent;
-  color: var(--silver-500);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 7px;
-  border: 1px solid var(--graphite-line);
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-
-.v-btn-ghost:hover {
-  color: var(--silver-700);
-  border-color: var(--silver-500);
-}
-
-/* ── EMPTY STATE ── */
-.v-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-  text-align: center;
-  gap: 8px;
-}
-
-.v-empty-icon {
-  color: var(--graphite-line);
-  margin-bottom: 4px;
-}
-
-.v-empty-title {
-  color: var(--silver-700);
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.v-empty-sub {
-  color: var(--silver-500);
-  font-size: 0.72rem;
-  max-width: 220px;
-  line-height: 1.5;
-}
-
-/* ── KPI METRIC ── */
-.v-kpi-value {
-  font-size: 1.35rem;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--platinum-100);
-}
-
-.v-kpi-label {
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--silver-500);
-}
-
-/* ── DIVIDER ── */
-.v-divider {
-  height: 1px;
-  background-color: var(--graphite-line);
-  border: none;
-  margin: 0;
-}
-
-/* ── SECTION TITLE ── */
-.v-section-title {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--silver-700);
-  padding: 0 16px 8px;
-}
-
-/* ── TYPOGRAPHY HELPERS ── */
-.v-text-primary   { color: var(--platinum-100); }
-.v-text-secondary { color: var(--silver-500); }
-.v-text-emphasis  { color: var(--silver-700); }
-.v-text-red       { color: var(--signal-red); }
-.v-text-amber     { color: var(--signal-amber); }
-.v-text-green     { color: var(--signal-green); }
-
-/* ── PROGRESS BAR ── */
-.v-progress-track {
-  height: 2px;
-  background-color: var(--graphite-line);
-  border-radius: 9999px;
-  overflow: hidden;
-}
-
-.v-progress-fill {
-  height: 100%;
-  border-radius: 9999px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background-color: var(--graphite-line); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background-color: var(--silver-500); }
-
-/* ── LEAFLET MAP ── */
-.leaflet-container {
-  background: var(--bg-panel) !important;
-  border-radius: 10px;
-}
-
-.leaflet-popup-content-wrapper {
-  background: var(--bg-panel-raised) !important;
-  border: 1px solid var(--graphite-line) !important;
-  color: var(--platinum-100) !important;
-  font-family: 'DM Sans', 'Inter', sans-serif !important;
-  border-radius: 8px !important;
-  box-shadow: none !important;
-}
-
-.leaflet-popup-tip {
-  background: var(--bg-panel-raised) !important;
-}
-
-/* ── ANIMATIONS ── */
-@keyframes fadeSlide {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.v-animate { animation: fadeSlide 0.2s ease forwards; }
-
-/* Toast: spring slide-in from bottom-right */
-@keyframes toastSlideIn {
-  0%   { opacity: 0; transform: translateX(40px) scale(0.95); }
-  60%  { transform: translateX(-4px) scale(1.01); }
-  100% { opacity: 1; transform: translateX(0) scale(1); }
-}
-.v-toast-animate {
-  animation: toastSlideIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes p1pulse {
-  0%, 100% {
-    border-color: var(--signal-red);
-    box-shadow: 0 0 0 2px rgba(185, 28, 60, 0.25),
-                0 0 12px rgba(185, 28, 60, 0.15);
+@media (max-width:820px){
+  :root{--rail:100%}
+  .v-shell{flex-direction:column-reverse}
+  .v-sidebar{
+    width:100%; height:64px; flex-direction:row; justify-content:space-around;
+    padding:0 var(--s2); border-top:1px solid var(--plum);
   }
-  50% {
-    border-color: var(--graphite-line);
-    box-shadow: none;
+  .v-sidebar > .v-logo,.v-sidebar > .v-rail-foot{display:none}
+  .v-nav-item{padding:8px 2px}
+  .v-nav-item::before{
+    left:50%; top:auto; bottom:-1px; width:0; height:3px;
+    transform:translateX(-50%); border-radius:3px 3px 0 0;
   }
+  .v-nav-item.active::before{width:22px; height:3px}
+  .v-header{padding:0 var(--s4); gap:var(--s3)}
+  .v-volvo-wordmark,.v-rule-v{display:none}
+  h1{font-size:1.5rem}
+  .v-toasts{left:var(--s3); right:var(--s3); width:auto; bottom:78px}
 }
-
-.v-p1-pulse { animation: p1pulse 1.6s ease-in-out infinite; }
-
-/* Shipment row selection glow */
-.v-row-selected {
-  box-shadow: inset 3px 0 0 var(--signal-amber), inset 0 0 0 1px rgba(200,202,210,0.06);
-  background-color: var(--bg-panel-raised) !important;
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; scroll-behavior:auto !important;
+  }
+  .v-reveal{opacity:1; transform:none}
 }
-.light .v-row-selected {
-  box-shadow: inset 3px 0 0 #6AAAD0, 2px 0 18px rgba(100, 160, 210, 0.18);
-  background-color: rgba(106, 170, 208, 0.07) !important;
-}
-
-/* KPI counter shimmer on hover */
-.v-kpi-value {
-  transition: color 0.2s ease;
-  cursor: default;
-  user-select: none;
-}
-
-/* ══════════════════════════════════════════════════════════
-   VOLVO METALLIC WORDMARK
-   Ultra-sharp, heavy-weight, vibrant chrome silver.
-   ══════════════════════════════════════════════════════════ */
-.v-volvo-wordmark {
-  /* Big Shoulders Display 900 — sharp geometric vertical strokes */
-  font-family: 'Big Shoulders Display', 'Arial Black', Impact, sans-serif;
-  font-size: 1.85rem;
-  font-weight: 900;
-  letter-spacing: 0.42em;
-  text-transform: uppercase;
-  text-rendering: geometricPrecision;
-  -webkit-font-smoothing: antialiased;
-  user-select: none;
-  line-height: 1;
-  padding-right: 0.42em; /* balance the trailing letter-spacing */
-
-  /* ── High-contrast chrome silver gradient (dark) ──
-     Pure white specular peak → platinum → silver mid → 
-     graphite shadow valley → back to bright platinum.  */
-  background: linear-gradient(
-    180deg,
-    #FFFFFF  0%,
-    #F0F2F6  5%,
-    #D8DCE4 12%,
-    #B8BCC6 22%,
-    #A0A3AD 32%,
-    #6A6D78 42%,
-    #3A3D47 50%,
-    #6A6D78 58%,
-    #A0A3AD 66%,
-    #C8CAD2 78%,
-    #EDEEF3 90%,
-    #FFFFFF 100%
-  );
-  background-size: 100% 300%;
-  background-position: 0% 15%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-
-  /* Depth shadow — stronger chrome depth */
-  filter: drop-shadow(0px 1px 0px #000000) drop-shadow(0px -1px 1px #C8CAD2) drop-shadow(0 0 4px rgba(200,202,210,0.3));
-
-  animation: volvoShimmer 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
-}
-
-/* Light theme: Nordic metallic blue — steel panel gloss */
-.light .v-volvo-wordmark {
-  background: linear-gradient(
-    180deg,
-    #EEF6FC  0%,     /* ice specular top */
-    #C8E0EE  6%,
-    #A0C4D8 16%,
-    #6A90A8 28%,
-    #3A6080 40%,
-    #1A3A52 50%,     /* deep navy shadow valley */
-    #3A6080 60%,
-    #6A90A8 72%,
-    #A0C4D8 84%,
-    #C8E0EE 94%,
-    #EEF6FC 100%     /* ice specular bottom */
-  );
-  background-size: 100% 300%;
-  background-position: 0% 15%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-
-  filter: drop-shadow(0px 1px 0px rgba(238,246,252,0.6)) drop-shadow(0px -1px 0px #0E1E2E) drop-shadow(0 0 6px rgba(106,170,208,0.4));
-  animation: volvoShimmerLight 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
-}
-
-@keyframes volvoShimmer {
-  0%   { background-position: 0% 5%;  }
-  100% { background-position: 0% 95%; }
-}
-@keyframes volvoShimmerLight {
-  0%   { background-position: 0% 95%; }
-  100% { background-position: 0% 5%;  }
-}
-
-.v-theme-toggle {
-  background-color: var(--bg-panel-raised);
-  border: 1px solid var(--graphite-line);
-  color: var(--silver-500);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 5px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-
-.v-theme-toggle:hover {
-  color: var(--silver-700);
-  border-color: var(--silver-500);
-}
-
-/* Typing dots */
-.v-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background-color: var(--silver-500);
-  display: inline-block;
-  animation: dotPulse 1.2s infinite;
-}
-.v-dot:nth-child(2) { animation-delay: 0.2s; }
-.v-dot:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes dotPulse {
-  0%, 60%, 100% { transform: scale(1); opacity: 0.6; }
-  30% { transform: scale(1.3); opacity: 1; }
-}
-
-/* ── HIDE SCROLLBAR helper ── */
-.hide-scrollbar { scrollbar-width: none; }
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-
-/* ── RISK PROGRESS BARS (mini bars inside tables) ── */
-.v-minibar-track {
-  flex: 1;
-  height: 4px;
-  background-color: var(--panel-edge);
-  border-radius: 99px;
-  overflow: hidden;
-}
-.v-minibar-fill {
-  height: 100%;
-  border-radius: 99px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ══════════════════════════════════════════════════════════
-   METALLIC DECORATIVE SYSTEM
-   Pure CSS — pseudo-elements, gradients, keyframes.
-   Never covers text or interactive targets.
-   ══════════════════════════════════════════════════════════ */
-
-/* ── 1. CHROME SWEEP on card hover ──
-   A traveling highlight that reads like light catching
-   a polished steel surface — sits behind all content.    */
-.v-card {
-  position: relative;
-  overflow: hidden;
-}
-.v-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    115deg,
-    transparent 0%,
-    rgba(180,183,196,0.0) 30%,
-    rgba(232,233,240,0.9) 48%,
-    rgba(255,255,255,1.0) 50%,
-    rgba(232,233,240,0.9) 52%,
-    rgba(180,183,196,0.0) 70%,
-    transparent 100%
-  );
-  opacity: 0;
-  transform: translateX(-120%);
-  pointer-events: none;
-  z-index: 0;
-  transition: opacity 0.05s ease;
-}
-.v-card:hover::before {
-  opacity: 0.055;   /* bigger silver flash */
-  animation: chromeSweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-.light .v-card:hover::before {
-  opacity: 0.65;
-}
-@keyframes chromeSweep {
-  0%   { transform: translateX(-120%); }
-  100% { transform: translateX(160%); }
-}
-
-/* Make card children sit above pseudo layers */
-.v-card > * { position: relative; z-index: 2; }
-
-/* ── 2. MACHINED-EDGE BEVEL on top of every card ──
-   Simulates a precision chamfer catching light.        */
-.v-card::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 6%;
-  right: 6%;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    #3A3D47 8%,
-    #7A7D8A 25%,
-    #A0A3AD 38%,
-    #C8CAD2 50%,
-    #EDEEF3 52%,   /* silver specular peak — wider & brighter */
-    #C8CAD2 56%,
-    #A0A3AD 65%,
-    #7A7D8A 80%,
-    #3A3D47 92%,
-    transparent 100%
-  );
-  opacity: 0.75;   /* more visible */
-  pointer-events: none;
-  z-index: 1;
-}
-.light .v-card::after {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    #C8CAD2 8%,
-    #EDEEF3 35%,
-    #FFFFFF 48%,
-    #FFFFFF 52%,
-    #EDEEF3 65%,
-    #C8CAD2 92%,
-    transparent 100%
-  );
-  opacity: 1;
-}
-
-/* ── 3. SIDEBAR BRUSHED-CROSSHATCH TEXTURE ──
-   Fine diagonal lines at ~2% opacity — industrial brushing. */
-.v-sidebar {
-  position: relative;
-}
-.v-sidebar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent 0px,
-    transparent 3px,
-    #F4F5F7 3px,
-    #F4F5F7 3.35px,
-    transparent 3.35px,
-    transparent 6px
-  );
-  opacity: 0.018;
-  pointer-events: none;
-  z-index: 0;
-}
-.light .v-sidebar::before {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent 0px,
-    transparent 3px,
-    #0E1E2E 3px,
-    #0E1E2E 3.35px,
-    transparent 3.35px,
-    transparent 6px
-  );
-  opacity: 0.04;
-}
-.v-sidebar > * { position: relative; z-index: 1; }
-
-/* ── 4. HEADER METALLIC SHEEN + CHROME HAIRLINE ── */
-.v-header {
-  position: relative;
-}
-.v-header::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #52566A 0%, #2A2D3A 35%, #15181E 70%, #0F1014 100%);
-  opacity: 0.55;
-  pointer-events: none;
-  z-index: 0;
-}
-.light .v-header::before {
-  /* Metallic blue sheen — like light catching brushed aluminium */
-  background: linear-gradient(180deg,
-    #C8D8E8 0%,
-    #8AAABF 30%,
-    #6A90A8 60%,
-    #5A8098 100%
-  );
-  opacity: 0.55;
-}
-/* Bottom chrome hairline — extra-bright silver */
-.v-header::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    #3A3D47 4%,
-    #7A7D8A 20%,
-    #A0A3AD 35%,
-    #C8CAD2 45%,
-    #EDEEF3 50%,   /* bright silver peak */
-    #C8CAD2 55%,
-    #A0A3AD 65%,
-    #7A7D8A 80%,
-    #3A3D47 96%,
-    transparent 100%
-  );
-  opacity: 0.9;
-  pointer-events: none;
-  z-index: 2;
-}
-.light .v-header::after {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    #6A90A8 4%,
-    #A0C4D8 22%,
-    #C8E0EE 44%,
-    #EEF6FC 50%,   /* ice-blue specular peak */
-    #C8E0EE 56%,
-    #A0C4D8 78%,
-    #6A90A8 96%,
-    transparent 100%
-  );
-  opacity: 1;
-}
-.v-header > * { position: relative; z-index: 1; }
-
-/* ── 5. LOGO BADGE SPINNING CHROME RING ──
-   A slow conic-gradient arc — precision bearing race.   */
-.v-logo-badge {
-  position: relative;
-}
-.v-logo-badge::after {
-  content: "";
-  position: absolute;
-  inset: -3px;   /* slightly wider ring */
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    #3A3D47 30deg,
-    #7A7D8A 60deg,
-    #C8CAD2 90deg,
-    #EDEEF3 120deg,   /* bright silver flash */
-    #C8CAD2 150deg,
-    #7A7D8A 180deg,
-    #3A3D47 210deg,
-    transparent 240deg,
-    transparent 360deg
-  );
-  animation: badgeSpin 8s linear infinite;   /* slightly faster */
-  z-index: -1;
-  opacity: 0.75;
-}
-.light .v-logo-badge::after {
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    #8AAABF 30deg,
-    #A0C4D8 60deg,
-    #C8E0EE 90deg,
-    #EEF6FC 120deg,   /* ice-blue flash */
-    #C8E0EE 150deg,
-    #A0C4D8 180deg,
-    #8AAABF 210deg,
-    transparent 240deg,
-    transparent 360deg
-  );
-  opacity: 0.55;
-}
-@keyframes badgeSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-/* ── 6. ACTIVE NAV ITEM CNC CHAMFER ──
-   clip-path cuts the top/bottom-right corners of the
-   active pill — a machined enclosure detail.           */
-.v-nav-item.active {
-  clip-path: polygon(
-    0% 0%,
-    calc(100% - 7px) 0%,
-    100% 7px,
-    100% calc(100% - 7px),
-    calc(100% - 7px) 100%,
-    0% 100%
-  );
-}
-
-/* ── 7. FILTER PILL — pressed-metal top highlight ── */
-.v-filter-pill { position: relative; }
-.v-filter-pill.active::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 15%; right: 15%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #F4F5F7, transparent);
-  opacity: 0.55;
-  border-radius: 99px;
-}
-.light .v-filter-pill.active::before {
-  background: linear-gradient(90deg, transparent, #EEF6FC, transparent);
-  opacity: 0.9;
-}
-
-/* ── 8. PROGRESS TRACK — machined channel indent ── */
-.v-progress-track {
-  background: linear-gradient(180deg, #08090E 0%, #1C1E26 50%, #2C2E38 100%);
-  box-shadow: inset 0 1px 0 rgba(200,202,210,0.08);
-}
-.light .v-progress-track {
-  background: linear-gradient(180deg, #8AAABF 0%, #AABFCE 50%, #C8D8E4 100%);
-  box-shadow: inset 0 1px 0 rgba(238,246,252,0.6);
-}
-.v-minibar-track {
-  background: linear-gradient(180deg, #08090E 0%, #1C1E26 50%, #2C2E38 100%);
-  box-shadow: inset 0 1px 0 rgba(200,202,210,0.08);
-}
-.light .v-minibar-track {
-  background: linear-gradient(180deg, #8AAABF 0%, #AABFCE 50%, #C8D8E4 100%);
-  box-shadow: inset 0 1px 0 rgba(238,246,252,0.6);
-}
-
-/* ── 9. SECTION TITLE RIVET DOTS ──
-   Tiny circular rivets flanking section headings.     */
-.v-section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.v-section-title::before,
-.v-section-title::after {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #EDEEF3, #7A7D8A 50%, #2C2E38);
-  box-shadow: 0 0 3px rgba(200,202,210,0.4);
-  flex-shrink: 0;
-}
-.light .v-section-title::before,
-.light .v-section-title::after {
-  background: radial-gradient(circle at 35% 30%, #EEF6FC, #A0C4D8 50%, #4A6878);
-  box-shadow: 0 0 3px rgba(100, 160, 210, 0.35);
-}
-
-/* ── 10. DIVIDER — chrome flash center reflection ── */
-.v-divider {
-  border: none;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    #3A3D47 6%,
-    #7A7D8A 22%,
-    #A0A3AD 38%,
-    #C8CAD2 46%,
-    #EDEEF3 50%,   /* bright silver midpoint */
-    #C8CAD2 54%,
-    #A0A3AD 62%,
-    #7A7D8A 78%,
-    #3A3D47 94%,
-    transparent 100%
-  );
-  opacity: 0.7;
-}
-.light .v-divider {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    #6A90A8 6%,
-    #98B8CC 24%,
-    #BCD4E4 42%,
-    #D8EEFA 50%,   /* ice-blue specular peak */
-    #BCD4E4 58%,
-    #98B8CC 76%,
-    #6A90A8 94%,
-    transparent 100%
-  );
-  opacity: 0.85;
-}
-
-/* ── 11. BODY VIGNETTE + SILVER SHEEN OVERLAY ── */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 50% 50%, transparent 55%, #000000 135%),
-    /* subtle silver grain across entire surface */
-    repeating-linear-gradient(
-      75deg,
-      transparent 0px,
-      transparent 18px,
-      rgba(200,202,210,0.012) 18px,
-      rgba(200,202,210,0.012) 18.5px,
-      transparent 18.5px,
-      transparent 36px
-    );
-  opacity: 0.4;
-  pointer-events: none;
-  z-index: 9999;
-}
-.light body::after {
-  background:
-    radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(14,30,46,0.14) 130%),
-    /* subtle metallic blue diagonal grain */
-    repeating-linear-gradient(
-      75deg,
-      transparent 0px,
-      transparent 18px,
-      rgba(100,150,190,0.025) 18px,
-      rgba(100,150,190,0.025) 18.5px,
-      transparent 18.5px,
-      transparent 36px
-    );
-  opacity: 1;
-}
-
-/* ── 12. KPI SHIMMER ANIMATION on mount ── */
-@keyframes kpiShimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-/* ── 13. SIDEBAR VOLVO LOGO — slow pulse glow ──
-   The iron-mark badge breathes slowly, like a standby
-   indicator on precision industrial equipment.         */
-@keyframes volvoPulse {
-  0%, 100% { filter: drop-shadow(0 0 5px #A0A3AD) drop-shadow(0 0 2px #3A3D47) drop-shadow(0 0 1px #2C2E38); opacity: 0.92; }
-  50%       { filter: drop-shadow(0 0 12px #C8CAD2) drop-shadow(0 0 5px #A0A3AD) drop-shadow(0 0 2px #6A6D78); opacity: 1; }
-}
-
-.v-sidebar > div:first-child svg {
-  animation: volvoPulse 4s ease-in-out infinite;
-}
-
-/* Light: darker steel glow */
-.light .v-sidebar > div:first-child svg {
-  animation: volvoPulseLight 4s ease-in-out infinite;
-}
-@keyframes volvoPulseLight {
-  0%, 100% { filter: drop-shadow(0 0 4px #8AAABF) drop-shadow(0 0 2px #4A6878); opacity: 0.88; }
-  50%       { filter: drop-shadow(0 0 10px #A0C4D8) drop-shadow(0 0 4px #6AAAD0); opacity: 1; }
-}
-
-

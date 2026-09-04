@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 
 from app.config import settings
 from app.database import Base, SessionLocal, engine
+from app.models import Shipment
 from app.routes import router
 from app.seed_data import seed_database
 from app.services.gap_detection import detect_gaps
@@ -76,10 +77,14 @@ async def background_worker():
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
-    # try:
-    #     seed_database(db)
-    # finally:
-    #     db.close()
+    try:
+        if db.query(Shipment).count() == 0:
+            logger.info("Database is empty. Seeding demo shipments and exceptions...")
+            seed_database(db)
+    except Exception as e:
+        logger.exception("Error seeding database: %s", e)
+    finally:
+        db.close()
     task = asyncio.create_task(background_worker())
     yield
     task.cancel()

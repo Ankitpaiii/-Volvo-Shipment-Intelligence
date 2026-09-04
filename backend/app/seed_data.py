@@ -1,10 +1,27 @@
-﻿from datetime import datetime, timedelta
+"""
+Deterministic Synthetic Data Seeding for Volvo Shipment Intelligence & Container Yard ML.
+Seeds Volvo Lanes, Milestones, GPS Pings, Exceptions, Yard Slots (Blocks A-D), Containers,
+and Gate Inspection records.
+"""
+from datetime import datetime, timedelta
 import random
-
 from sqlalchemy.orm import Session
 
-from app.models import ExceptionRecord, MilestoneEvent, Shipment, ShipmentStatus
+from app.models import (
+    Container,
+    ContainerStatus,
+    ExceptionRecord,
+    GateInspection,
+    InspectionStatus,
+    MilestoneEvent,
+    MLPredictionLog,
+    Shipment,
+    ShipmentStatus,
+    YardSlot,
+)
+from app.ml.delay_predictor import delay_predictor
 
+RANDOM_SEED = 42
 
 LANES = [
     {
@@ -61,85 +78,121 @@ LANES = [
         "dest_city": "Amsterdam",
         "origin_lat": 18.5204, "origin_lng": 73.8567,
         "dest_lat": 52.3676, "dest_lng": 4.9041,
-        "mode": "sea",
+        "mode": "air",
     },
     {
-        "lane_name": "Bangalore -> Volvo Ghent",
-        "origin_city": "Bengaluru",
-        "dest_city": "Ghent",
-        "origin_lat": 12.9716, "origin_lng": 77.5946,
-        "dest_lat": 51.0543, "dest_lng": 3.7174,
+        "lane_name": "Hyderabad -> Frankfurt",
+        "origin_city": "Hyderabad",
+        "dest_city": "Frankfurt",
+        "origin_lat": 17.3850, "origin_lng": 78.4867,
+        "dest_lat": 50.1109, "dest_lng": 8.6821,
         "mode": "air",
     },
 ]
 
-SUPPLIERS = [
-    "Bosch India", "SKF Pune", "Denso Chennai", "Mahle Hosur",
-    "Continental BLR", "ZF India", "Aptiv Chennai", "Valeo India",
-    "Minda Industries", "Motherson Sumi",
-]
 CARRIERS = [
-    "DHL Freight", "DB Schenker", "Blue Dart", "Maersk Logistics",
-    "TVS Logistics", "Gati-KWE", "VRL Cargo", "FedEx Freight",
+    "Maersk Line", "DHL Global Forwarding", "Kuehne+Nagel",
+    "DSV Panalpina", "DB Schenker", "Volvo In-House Logistics"
 ]
-CRITICALITIES = ["JIT", "JIS", "STANDARD", "STANDARD", "STANDARD", "LOW", "STANDARD", "JIT"]
+
+SUPPLIERS = [
+    "Bharat Forge Ltd", "Sundram Fasteners", "TVS Motors Component Div",
+    "Bosch India Ltd", "Minda Corporation", "Tata AutoComp Systems",
+    "Brakes India Ltd", "Lucas TVS"
+]
+
+CRITICALITY_LEVELS = ["JIT", "JIS", "STANDARD"]
+CRITICALITY_WEIGHTS = [0.20, 0.15, 0.65]
+
+MILESTONES_ORDER = [
+    "TRANSPORT_ORDER_CREATED",
+    "CARRIER_CONFIRMED",
+    "PICKUP_SCHEDULED",
+    "PICKUP_COMPLETED",
+    "DEPARTED_ORIGIN",
+    "ARRIVED_TRANSIT_HUB",
+    "CUSTOMS_CLEARED",
+    "OUT_FOR_DELIVERY",
+    "DELIVERED",
+]
 
 
-def seed_database(db: Session) -> None:
-    if db.query(Shipment).count() > 0:
-        return
-
+def seed_volvo_tracking(db: Session):
+    random.seed(RANDOM_SEED)
     now = datetime.utcnow()
-    shipments: list[Shipment] = []
+    shipments = []
 
-    for i in range(50):
+    statuses = (
+        ["IN_TRANSIT"] * 12 +
+        ["AT_RISK"] * 6 +
+        ["DELAYED"] * 3 +
+        ["DELIVERED"] * 4 +
+        ["PLANNED"] * 3
+    )
+
+    for i, status in enumerate(statuses):
         lane = LANES[i % len(LANES)]
-        # Vary transit duration by mode
-        if lane["mode"] == "road":
-            transit_hours = random.randint(8, 24)
-        elif lane["mode"] == "air":
-            transit_hours = random.randint(48, 120)
-        else:  # sea
-            transit_hours = random.randint(240, 480)
+        carrier = CARRIERS[i % len(CARRIERS)]
+        supplier = SUPPLIERS[i % len(SUPPLIERS)]
+        crit = random.choices(CRITICALITY_LEVELS, weights=CRITICALITY_WEIGHTS)[0]
 
-        pickup = now - timedelta(hours=random.randint(4, transit_hours // 2))
-        delivery = pickup + timedelta(hours=transit_hours)
-        criticality = CRITICALITIES[i % len(CRITICALITIES)]
-        po = f"4500{120000 + i}"
+        pickup_offset_hours = random.randint(12, 96)
+        planned_pickup = now - timedelta(hours=pickup_offset_hours)
+        transit_duration_hours = random.randint(36, 120)
+        planned_delivery = planned_pickup + timedelta(hours=transit_duration_hours)
 
-        # Distribute statuses realistically
-        status_roll = i % 10
-        if status_roll < 4:
-            status = ShipmentStatus.IN_TRANSIT.value
-            risk = random.randint(5, 35)
-        elif status_roll < 6:
-            status = ShipmentStatus.AT_RISK.value
-            risk = random.randint(55, 85)
-        elif status_roll == 6:
-            status = ShipmentStatus.DELAYED.value
-            risk = random.randint(75, 97)
-        elif status_roll == 7:
-            status = ShipmentStatus.DELIVERED.value
-            risk = random.randint(0, 15)
-        elif status_roll == 8:
-            status = ShipmentStatus.PLANNED.value
-            risk = random.randint(0, 20)
-        else:
-            status = ShipmentStatus.IN_TRANSIT.value
-            risk = random.randint(20, 50)
+        actual_pickup = None
+        actual_delivery = None
+        predicted_delivery = None
+        delay_risk = 0
+        health = 100
+        flags = []
 
-        elapsed = max(0.0, min(1.0, (now - pickup).total_seconds() / max(1, (delivery - pickup).total_seconds())))
-        # Add some GPS noise to position
-        noise_lat = random.gauss(0, 0.05)
-        noise_lng = random.gauss(0, 0.05)
-        current_lat = lane["origin_lat"] + (lane["dest_lat"] - lane["origin_lat"]) * elapsed + noise_lat
-        current_lng = lane["origin_lng"] + (lane["dest_lng"] - lane["origin_lng"]) * elapsed + noise_lng
+        # Coordinate interpolation
+        t = min(1.0, max(0.0, pickup_offset_hours / max(1, transit_duration_hours)))
+        current_lat = lane["origin_lat"] + t * (lane["dest_lat"] - lane["origin_lat"])
+        current_lng = lane["origin_lng"] + t * (lane["dest_lng"] - lane["origin_lng"])
+
+        if status == "IN_TRANSIT":
+            actual_pickup = planned_pickup + timedelta(minutes=random.randint(-30, 60))
+            predicted_delivery = planned_delivery + timedelta(minutes=random.randint(-60, 90))
+            delay_risk = random.randint(5, 30)
+            health = random.randint(75, 98)
+        elif status == "AT_RISK":
+            actual_pickup = planned_pickup + timedelta(minutes=random.randint(30, 180))
+            predicted_delay_hours = random.randint(3, 8)
+            predicted_delivery = planned_delivery + timedelta(hours=predicted_delay_hours)
+            delay_risk = random.randint(45, 75)
+            health = random.randint(35, 65)
+            flags = random.sample(["low_milestone_progress", "gps_stale_45min", "dwell_high"], k=random.randint(1, 2))
+        elif status == "DELAYED":
+            actual_pickup = planned_pickup + timedelta(hours=random.randint(2, 6))
+            predicted_delay_hours = random.randint(8, 24)
+            predicted_delivery = planned_delivery + timedelta(hours=predicted_delay_hours)
+            delay_risk = random.randint(75, 98)
+            health = random.randint(10, 35)
+            flags = ["delay_over_4h", "gps_stale_90min"]
+        elif status == "DELIVERED":
+            actual_pickup = planned_pickup
+            delivered_delay = random.randint(-60, 120)
+            actual_delivery = planned_delivery + timedelta(minutes=delivered_delay)
+            predicted_delivery = actual_delivery
+            delay_risk = 0
+            health = 100
+            current_lat = lane["dest_lat"]
+            current_lng = lane["dest_lng"]
+        elif status == "PLANNED":
+            planned_pickup = now + timedelta(hours=random.randint(6, 48))
+            planned_delivery = planned_pickup + timedelta(hours=transit_duration_hours)
+            current_lat = lane["origin_lat"]
+            current_lng = lane["origin_lng"]
+            health = 100
 
         shipment = Shipment(
-            po_number=po,
+            po_number=f"PO-{100000 + i}",
             status=status,
-            supplier_name=SUPPLIERS[i % len(SUPPLIERS)],
-            carrier_name=CARRIERS[i % len(CARRIERS)],
+            supplier_name=supplier,
+            carrier_name=carrier,
             lane_name=lane["lane_name"],
             origin_city=lane["origin_city"],
             dest_city=lane["dest_city"],
@@ -147,99 +200,68 @@ def seed_database(db: Session) -> None:
             origin_lng=lane["origin_lng"],
             dest_lat=lane["dest_lat"],
             dest_lng=lane["dest_lng"],
-            current_lat=current_lat if status not in (ShipmentStatus.PLANNED.value,) else None,
-            current_lng=current_lng if status not in (ShipmentStatus.PLANNED.value,) else None,
-            part_criticality=criticality,
-            planned_pickup=pickup,
-            planned_delivery=delivery,
-            actual_pickup=pickup + timedelta(hours=1) if status != ShipmentStatus.PLANNED.value else None,
-            actual_delivery=delivery - timedelta(hours=random.randint(0, 3)) if status == ShipmentStatus.DELIVERED.value else None,
-            delay_risk_score=risk,
-            health_score=max(0, 100 - risk),
-            predicted_delivery=delivery + timedelta(hours=random.randint(-6, int(transit_hours * 0.2))),
-            eta_confidence=round(random.uniform(0.5, 0.95), 2),
-            flags=["gps_stale_45min"] if risk > 60 and status_roll % 2 == 0 else [],
+            current_lat=round(current_lat, 6) if current_lat else None,
+            current_lng=round(current_lng, 6) if current_lng else None,
+            part_criticality=crit,
+            planned_pickup=planned_pickup,
+            planned_delivery=planned_delivery,
+            actual_pickup=actual_pickup,
+            actual_delivery=actual_delivery,
+            delay_risk_score=delay_risk,
+            health_score=health,
+            predicted_delivery=predicted_delivery,
+            eta_confidence=round(random.uniform(0.70, 0.95), 2),
+            flags=flags,
             references={
-                "PO": po,
-                "BOL": f"BOL-{90000 + i}",
-                "ASN": f"ASN-{70000 + i}" if i % 3 != 0 else "",
-                "CARRIER_LOAD": f"LOAD-{5000 + i}",
+                "bill_of_lading": f"BOL-2024-{2000+i}",
+                "invoice": f"INV-VG-{5000+i}",
+                "truck_id": f"KA-04-{random.randint(1000,9999)}" if lane["mode"] == "road" else f"CONTAINER-IN-{random.randint(1000,9999)}",
             },
+            distance=round(random.uniform(350.0, 1200.0), 1),
+            current_progress=round(t, 2),
+            current_speed=round(random.uniform(45.0, 75.0), 1) if status in ("IN_TRANSIT", "AT_RISK") else 0.0,
+            dwell_time=round(random.uniform(0.5, 2.5), 1),
+            yard_congestion=0.45,
+            historical_delay=round(random.uniform(10.0, 25.0), 1),
+            predicted_delay=float(delay_risk),
+            predicted_eta=predicted_delivery,
         )
-        db.add(shipment)
         shipments.append(shipment)
 
-    db.flush()
+    db.add_all(shipments)
+    db.commit()
 
-    milestone_sets = {
-        "full": [
-            "TRANSPORT_ORDER_CREATED", "ASN_CREATED", "BOOKING_CONFIRMED",
-            "PICKUP_COMPLETED", "IN_TRANSIT", "GATE_ARRIVAL",
-        ],
-        "partial": ["TRANSPORT_ORDER_CREATED", "BOOKING_CONFIRMED", "PICKUP_COMPLETED"],
-        "minimal": ["TRANSPORT_ORDER_CREATED"],
-        "delivered": [
-            "TRANSPORT_ORDER_CREATED", "ASN_CREATED", "BOOKING_CONFIRMED",
-            "PICKUP_COMPLETED", "IN_TRANSIT", "GATE_ARRIVAL",
-            "DOCK_CHECKIN", "UNLOAD_COMPLETE", "GOODS_RECEIPT_CONFIRMED",
-        ],
-        "customs_hold": [
-            "TRANSPORT_ORDER_CREATED", "ASN_CREATED", "BOOKING_CONFIRMED",
-            "PICKUP_COMPLETED", "IN_TRANSIT",
-        ],
-    }
+    # Seed Milestone Events
+    for s in shipments:
+        events_to_create = []
+        if s.status == "PLANNED":
+            events_to_create = ["TRANSPORT_ORDER_CREATED"]
+        elif s.status in ("IN_TRANSIT", "AT_RISK", "DELAYED"):
+            events_to_create = MILESTONES_ORDER[:random.randint(3, 7)]
+        elif s.status == "DELIVERED":
+            events_to_create = MILESTONES_ORDER[:]
 
-    for idx, shipment in enumerate(shipments):
-        if shipment.status == ShipmentStatus.DELIVERED.value:
-            milestones = milestone_sets["delivered"]
-        elif shipment.delay_risk_score >= 70:
-            # Some have customs holds, some have GPS stalls
-            milestones = milestone_sets["customs_hold"] if idx % 3 == 0 else (
-                milestone_sets["minimal"] if idx % 2 == 0 else milestone_sets["partial"]
+        event_time = s.planned_pickup - timedelta(hours=4)
+        for evt_type in events_to_create:
+            events_to_create_record = MilestoneEvent(
+                shipment_id=s.shipment_id,
+                event_type=evt_type,
+                source="edi_integration" if "ORDER" in evt_type or "CONFIRMED" in evt_type else "carrier_api",
+                event_time=event_time,
+                payload={"status_code": "OK", "location": s.origin_city if "ORIGIN" in evt_type else s.dest_city},
             )
-        elif shipment.delay_risk_score >= 40:
-            milestones = milestone_sets["partial"]
-        else:
-            milestones = milestone_sets["full"]
+            db.add(events_to_create_record)
+            event_time = event_time + timedelta(hours=random.randint(4, 18))
 
-        t = shipment.planned_pickup
-        for m in milestones:
-            db.add(
-                MilestoneEvent(
-                    shipment_id=shipment.shipment_id,
-                    event_type=m,
-                    source="seed",
-                    event_time=t,
-                    payload={"seeded": True, "lane_mode": LANES[idx % len(LANES)]["mode"]},
-                )
-            )
-            t += timedelta(hours=random.randint(2, 16))
-
-        # Add GPS pings for in-transit shipments
-        if shipment.current_lat and shipment.status not in (ShipmentStatus.PLANNED.value, ShipmentStatus.DELIVERED.value):
-            # Add multiple GPS pings to show trajectory
-            num_pings = random.randint(3, 8)
-            for ping_i in range(num_pings):
-                ping_progress = (ping_i + 1) / (num_pings + 1)
-                actual_progress = max(0.0, min(1.0,
-                    (now - shipment.planned_pickup).total_seconds() /
-                    max(1, (shipment.planned_delivery - shipment.planned_pickup).total_seconds())
-                ))
-                p = min(ping_progress, actual_progress)
-                # Skip some pings to simulate GPS gaps for stalled shipments
-                if shipment.delay_risk_score > 60 and ping_i == num_pings - 2:
-                    continue  # gap — no ping
-                ping_lat = shipment.origin_lat + (shipment.dest_lat - shipment.origin_lat) * p + random.gauss(0, 0.03)
-                ping_lng = shipment.origin_lng + (shipment.dest_lng - shipment.origin_lng) * p + random.gauss(0, 0.03)
-                ping_time = shipment.planned_pickup + timedelta(
-                    seconds=(now - shipment.planned_pickup).total_seconds() * (ping_i / num_pings)
-                )
-                # For at-risk/delayed shipments, make last GPS ping old
-                if shipment.delay_risk_score > 60 and ping_i == num_pings - 1:
-                    ping_time = now - timedelta(minutes=random.randint(50, 120))
+        # Add GPS pings
+        if s.current_lat and s.current_lng:
+            for p in range(random.randint(2, 5)):
+                ping_time = now - timedelta(minutes=(p * 20 + random.randint(1, 10)))
+                ping_lat = s.current_lat + random.uniform(-0.02, 0.02)
+                ping_lng = s.current_lng + random.uniform(-0.02, 0.02)
                 db.add(
                     MilestoneEvent(
-                        shipment_id=shipment.shipment_id,
+                        shipment_id=s.shipment_id,
                         event_type="GPS_PING",
                         source="telematics_simulator",
                         event_time=ping_time,
@@ -251,7 +273,7 @@ def seed_database(db: Session) -> None:
                     )
                 )
 
-    # Pre-seed a rich set of exceptions
+    # Pre-seed rich exceptions
     exception_specs = [
         (0, "MISSING_ASN", "P2", "ASN not received for PO", "supplier_delay",
          "Contact supplier and request ASN via portal or email escalation. Escalate to procurement if no response in 2h."),
@@ -287,3 +309,119 @@ def seed_database(db: Session) -> None:
             )
 
     db.commit()
+
+
+def seed_yard_and_containers(db: Session):
+    random.seed(RANDOM_SEED)
+
+    # 1. Create Yard Slots: Blocks A, B, C, D | 3 Bays | 4 Rows | 2 Tiers (96 slots total)
+    blocks = ["A", "B", "C", "D"]
+    slots = []
+    for b in blocks:
+        for bay in range(1, 4):
+            for row in range(1, 5):
+                for tier in range(1, 3):
+                    slot_id = f"{b}-{bay:02d}-{row:02d}-{tier}"
+                    slot = YardSlot(
+                        id=slot_id,
+                        block=b,
+                        bay=bay,
+                        row=row,
+                        tier=tier,
+                        is_occupied=False,
+                        container_id=None,
+                    )
+                    slots.append(slot)
+    db.add_all(slots)
+    db.commit()
+
+    # 2. Create Containers
+    destinations = ["Hamburg", "Rotterdam", "Antwerp", "Gothenburg", "Singapore", "Busan"]
+    carriers_prefix = ["MSCU", "CMAU", "MAEU", "HLCU", "ONEU", "EVER", "COSU", "ZIMU"]
+    priorities = ["STANDARD", "HIGH", "URGENT"]
+    weight_tiers = ["LIGHT", "MEDIUM", "HEAVY"]
+
+    containers = []
+    for i in range(1, 41):
+        prefix = random.choice(carriers_prefix)
+        serial = 1000000 + i * 147 + (i % 7) * 31
+        container_num = f"{prefix}{serial}"[:11]
+        priority = random.choices(priorities, weights=[0.60, 0.25, 0.15])[0]
+        weight = random.choices(weight_tiers, weights=[0.30, 0.45, 0.25])[0]
+        size = random.choice([20, 40])
+        dest = random.choice(destinations)
+        hazard = (random.random() < 0.10)
+
+        c = Container(
+            container_number=container_num,
+            size_teu=size,
+            weight_tier=weight,
+            hazard=hazard,
+            destination=dest,
+            priority=priority,
+            status=ContainerStatus.IN_TRANSIT.value,
+            current_slot_id=None,
+            created_at=datetime.utcnow() - timedelta(hours=random.randint(2, 48)),
+        )
+        containers.append(c)
+
+    db.add_all(containers)
+    db.commit()
+
+    for c in containers:
+        db.refresh(c)
+
+    # 3. Stack ~18 containers into Yard (Tier 1 first)
+    yard_containers = containers[:18]
+    available_tier1 = [s for s in slots if s.tier == 1]
+    random.shuffle(available_tier1)
+
+    for i, c in enumerate(yard_containers):
+        slot = available_tier1[i]
+        slot.is_occupied = True
+        slot.container_id = c.id
+        c.current_slot_id = slot.id
+        c.status = ContainerStatus.YARD_STACKED.value
+
+    # Place 3 containers on Tier 2 above occupied Tier 1
+    tier2_candidates = [
+        s for s in slots
+        if s.tier == 2 and any(t1.is_occupied and t1.block == s.block and t1.bay == s.bay and t1.row == s.row for t1 in available_tier1[:18])
+    ]
+    tier2_containers = containers[18:21]
+    for i, c in enumerate(tier2_containers):
+        slot = tier2_candidates[i]
+        slot.is_occupied = True
+        slot.container_id = c.id
+        c.current_slot_id = slot.id
+        c.status = ContainerStatus.YARD_STACKED.value
+
+    # 4. Mark 4 containers as AT_GATE
+    for c in containers[21:25]:
+        c.status = ContainerStatus.AT_GATE.value
+
+    db.commit()
+
+    # 5. Create Gate Inspection Records
+    for c in containers[21:26]:
+        insp = GateInspection(
+            timestamp=datetime.utcnow() - timedelta(minutes=random.randint(5, 120)),
+            image_path=f"/samples/gate_{c.container_number.lower()}.jpg",
+            raw_ocr_text=c.container_number,
+            validated_code=c.container_number,
+            confidence=round(random.uniform(0.92, 0.99), 2),
+            status=InspectionStatus.SUCCESS.value,
+            detected_box=[0.20, 0.15, 0.80, 0.85],
+        )
+        db.add(insp)
+
+    db.commit()
+
+
+def seed_database(db: Session):
+    """Seed the database with reproducible test data."""
+    if db.query(Shipment).count() == 0:
+        seed_volvo_tracking(db)
+    if db.query(YardSlot).count() == 0:
+        seed_yard_and_containers(db)
+    print("Database seeding completed for Volvo Shipment Tracking & Yard ML.")
