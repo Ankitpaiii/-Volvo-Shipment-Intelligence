@@ -39,6 +39,10 @@ Yard_ML/
 FRONTEND_UI_COMPLETE_GUIDE.txt
 production_todo.md
 
+# ML Runtime & Drift History
+backend/app/ml/artifacts/drift_history.json
+**/drift_history.json
+
 # IDE
 .idea/
 .vscode/
@@ -48,3 +52,4 @@ production_todo.md
 # OS
 .DS_Store
 Thumbs.db
+

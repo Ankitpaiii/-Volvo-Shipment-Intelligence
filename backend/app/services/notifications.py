@@ -11,6 +11,5 @@ def send_notification(channel: str, recipient: str, subject: str, body: str) -> 
         "body": body,
         "status": "sent",
     }
-    logger.info("[NOTIFICATION] %s -> %s: %s", channel, recipient, subject)
-    print(f"[NOTIFICATION] {channel} | {recipient} | {subject}\n{body}\n")
+    logger.info("[NOTIFICATION] %s -> %s: %s | %.200s", channel, recipient, subject, body)
     return payload

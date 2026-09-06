@@ -6,6 +6,7 @@ from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, Stri
 from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from app.database import Base
+from app.timeutils import utcnow
 
 
 def new_uuid() -> str:
@@ -59,7 +60,7 @@ class Container(Base):
     priority: Mapped[str] = mapped_column(String(16), default="STANDARD")  # STANDARD, HIGH, URGENT
     status: Mapped[str] = mapped_column(String(32), default=ContainerStatus.IN_TRANSIT.value, index=True)
     current_slot_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("yard_slots.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     # Relationships
     current_slot: Mapped["YardSlot"] = relationship("YardSlot", foreign_keys=[current_slot_id])
@@ -98,13 +99,13 @@ class Shipment(Base):
     current_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     current_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     part_criticality: Mapped[str] = mapped_column(String(16), default="STANDARD")
-    planned_pickup: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    planned_delivery: Mapped[datetime] = mapped_column(DateTime, index=True, default=lambda: datetime.utcnow() + timedelta(days=2))
-    actual_pickup: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    actual_delivery: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    planned_pickup: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    planned_delivery: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True, default=lambda: utcnow() + timedelta(days=2))
+    actual_pickup: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    actual_delivery: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delay_risk_score: Mapped[int] = mapped_column(Integer, default=0)
     health_score: Mapped[int] = mapped_column(Integer, default=100)
-    predicted_delivery: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    predicted_delivery: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     eta_confidence: Mapped[float] = mapped_column(Float, default=0.8)
     flags: Mapped[list] = mapped_column(JSON, default=list)
     references: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -117,9 +118,9 @@ class Shipment(Base):
     yard_congestion: Mapped[float] = mapped_column(Float, default=0.5)
     historical_delay: Mapped[float] = mapped_column(Float, default=0.0)
     predicted_delay: Mapped[float] = mapped_column(Float, default=0.0)
-    predicted_eta: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    predicted_eta: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     id = synonym("shipment_id")
     origin = synonym("origin_city")
@@ -140,8 +141,8 @@ class MilestoneEvent(Base):
     shipment_id: Mapped[str] = mapped_column(String(36), ForeignKey("shipments.shipment_id"), index=True)
     event_type: Mapped[str] = mapped_column(String(64), index=True)
     source: Mapped[str] = mapped_column(String(64))
-    event_time: Mapped[datetime] = mapped_column(DateTime, index=True)
-    received_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    received_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
 
     shipment: Mapped["Shipment"] = relationship(back_populates="events")
@@ -159,8 +160,8 @@ class ExceptionRecord(Base):
     business_impact_score: Mapped[int] = mapped_column(Integer, default=50)
     message: Mapped[Text] = mapped_column(Text)
     recommended_action: Mapped[str | None] = mapped_column(Text, nullable=True)
-    raised_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    raised_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     shipment: Mapped["Shipment"] = relationship(back_populates="exceptions")
 
@@ -169,13 +170,27 @@ class GateInspection(Base):
     __tablename__ = "gate_inspections"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     image_path: Mapped[str] = mapped_column(String(256))
     raw_ocr_text: Mapped[str] = mapped_column(String(128))
     validated_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
     confidence: Mapped[float] = mapped_column(Float, default=0.0)
     status: Mapped[str] = mapped_column(String(16), default=InspectionStatus.SUCCESS.value)
     detected_box: Mapped[list] = mapped_column(JSON, default=list)  # [ymin, xmin, ymax, xmax]
+
+
+class AuditLog(Base):
+    """Append-only activity trail (P5.1): who did what, to which entity, when."""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    actor: Mapped[str] = mapped_column(String(128), default="anonymous", index=True)
+    action: Mapped[str] = mapped_column(String(64), index=True)
+    entity_type: Mapped[str] = mapped_column(String(32), index=True)
+    entity_id: Mapped[str] = mapped_column(String(64), index=True)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 class MLPredictionLog(Base):
@@ -187,6 +202,6 @@ class MLPredictionLog(Base):
     predicted_delay_minutes: Mapped[float] = mapped_column(Float)
     actual_delay_minutes: Mapped[float | None] = mapped_column(Float, nullable=True)
     features_json: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     shipment: Mapped["Shipment"] = relationship(back_populates="predictions")

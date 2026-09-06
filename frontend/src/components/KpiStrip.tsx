@@ -51,7 +51,7 @@ const CONFIGS: KpiConfig[] = [
     key: "shipments_in_transit",
     label: "YARD OCCUPANCY",
     format: (v) => String(Math.round(v * 0.77)),
-    unit: " / 96 slots",
+    unit: " / 192 slots",
     deltaLabel: "n 6 slots",
     color: () => "var(--ink)",
   },

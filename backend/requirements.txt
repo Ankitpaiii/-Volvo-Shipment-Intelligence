@@ -8,3 +8,24 @@ httpx==0.28.1
 anthropic==0.42.0
 python-dateutil==2.9.0.post0
 openai==1.59.3
+# --- ML / data (previously missing, imported by app/ml/*) ---
+numpy==2.4.6
+pandas==3.0.5
+scikit-learn==1.9.0
+xgboost==3.2.0
+joblib==1.6.0
+scipy==1.17.1
+# --- CV / OCR ---
+opencv-python==5.0.0.93
+Pillow==12.3.0
+onnxruntime==1.29.0
+onnx>=1.15
+# --- Heavy optional (lazy-imported with fallback; install for full ML) ---
+# torch>=2.0  # required for DQN (app/ml/dqn_allocator.py) + training scripts
+# ultralytics>=8.0  # required for YOLOv8 PyTorch fallback (app/ml/cv_detector.py)
+# easyocr>=1.7  # required for OCR (app/ml/ocr_engine.py)
+torch>=2.0
+ultralytics>=8.0
+easyocr>=1.7
+# --- Testing (P3.6: pytest scaffold in backend/tests/) ---
+pytest>=8.0

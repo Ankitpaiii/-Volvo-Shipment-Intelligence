@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.models import MilestoneEvent, Shipment, ShipmentStatus
+from app.timeutils import ensure_aware, utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +28,13 @@ LANE_DISTANCES = {
 
 
 def _get_progress_fraction(shipment: Shipment, now: datetime) -> float:
-    total_secs = (shipment.planned_delivery - shipment.planned_pickup).total_seconds()
+    now = ensure_aware(now)
+    pickup = ensure_aware(shipment.planned_pickup)
+    delivery = ensure_aware(shipment.planned_delivery)
+    total_secs = (delivery - pickup).total_seconds()
     if total_secs <= 0:
         return 1.0
-    elapsed = (now - shipment.planned_pickup).total_seconds()
+    elapsed = (now - pickup).total_seconds()
     return max(0.0, min(1.0, elapsed / total_secs))
 
 
@@ -41,7 +45,7 @@ def simulate_gps_pings(db: Session) -> int:
     - Adds variable speed with random noise
     - Returns count of pings generated
     """
-    now = datetime.utcnow()
+    now = utcnow()
     active = db.query(Shipment).filter(
         Shipment.status.in_([ShipmentStatus.IN_TRANSIT.value, ShipmentStatus.AT_RISK.value, ShipmentStatus.DELAYED.value])
     ).all()

@@ -16,6 +16,7 @@ Statistical Methods:
 """
 from datetime import datetime
 import json
+import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -24,6 +25,9 @@ from scipy import stats
 from sqlalchemy.orm import Session
 
 from app.models import Shipment
+from app.timeutils import utcnow
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARTIFACTS_DIR = os.path.join(BASE_DIR, "ml", "artifacts")
@@ -42,7 +46,7 @@ class DriftDetector:
                 with open(self.metrics_path, "r") as f:
                     return json.load(f)
             except Exception as e:
-                print(f"[DriftDetector] Failed to load baseline metrics: {e}")
+                logger.warning("[DriftDetector] Failed to load baseline metrics: %s", e)
         return {}
 
     def calculate_psi(self, feature_name: str, actual_values: np.ndarray, epsilon: float = 1e-4) -> float:
@@ -200,7 +204,7 @@ class DriftDetector:
         retraining_recommended = len(high_drift_features) > 0 or system_psi >= 0.15
 
         report = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": utcnow().isoformat(),
             "sample_size": total_records,
             "system_psi": system_psi,
             "retraining_recommended": retraining_recommended,
@@ -244,7 +248,7 @@ class DriftDetector:
             with open(DRIFT_LOG_PATH, "w") as f:
                 json.dump(history, f, indent=2)
         except Exception as e:
-            print(f"[DriftDetector] Failed to persist drift history: {e}")
+            logger.warning("[DriftDetector] Failed to persist drift history: %s", e)
 
     def trigger_retraining(self) -> Dict[str, Any]:
         """
@@ -256,7 +260,7 @@ class DriftDetector:
         from app.ml.training.train_delay_model import train_and_evaluate_models
         from app.ml.delay_predictor import delay_predictor
 
-        t0 = datetime.utcnow()
+        t0 = utcnow()
         train_res = train_and_evaluate_models()
 
         # Reload predictor instance
@@ -267,7 +271,7 @@ class DriftDetector:
             "status": "SUCCESS",
             "message": "Model retraining pipeline completed successfully. DelayPredictor hot-reloaded.",
             "started_at": t0.isoformat(),
-            "completed_at": datetime.utcnow().isoformat(),
+            "completed_at": utcnow().isoformat(),
             "new_metrics": train_res.get("metrics"),
             "xgboost_serialization": "xgboost.json (native)",
             "retrained_samples": train_res.get("n_train_samples")

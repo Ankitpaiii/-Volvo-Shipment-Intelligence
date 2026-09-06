@@ -4,8 +4,13 @@ Seeds Volvo Lanes, Milestones, GPS Pings, Exceptions, Yard Slots (Blocks A-D), C
 and Gate Inspection records.
 """
 from datetime import datetime, timedelta
+import logging
 import random
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
+
+from app.timeutils import utcnow
 
 from app.models import (
     Container,
@@ -119,7 +124,7 @@ MILESTONES_ORDER = [
 
 def seed_volvo_tracking(db: Session):
     random.seed(RANDOM_SEED)
-    now = datetime.utcnow()
+    now = utcnow()
     shipments = []
 
     statuses = (
@@ -314,11 +319,13 @@ def seed_volvo_tracking(db: Session):
 def seed_yard_and_containers(db: Session):
     random.seed(RANDOM_SEED)
 
-    # 1. Create Yard Slots: Blocks A, B, C, D | 3 Bays | 4 Rows | 2 Tiers (96 slots total)
+    # 1. Create Yard Slots: Blocks A, B, C, D | 6 Bays | 4 Rows | 2 Tiers (192 slots total)
+    # Must match RL/DQN geometry: BLOCKS A-D, BAYS 1..6, ROWS 1..4, TIERS 1..2
+    # (see ml/rl_allocator.py, ml/dqn_allocator.py, ml/yard_allocator.py)
     blocks = ["A", "B", "C", "D"]
     slots = []
     for b in blocks:
-        for bay in range(1, 4):
+        for bay in range(1, 7):
             for row in range(1, 5):
                 for tier in range(1, 3):
                     slot_id = f"{b}-{bay:02d}-{row:02d}-{tier}"
@@ -361,7 +368,7 @@ def seed_yard_and_containers(db: Session):
             priority=priority,
             status=ContainerStatus.IN_TRANSIT.value,
             current_slot_id=None,
-            created_at=datetime.utcnow() - timedelta(hours=random.randint(2, 48)),
+            created_at=utcnow() - timedelta(hours=random.randint(2, 48)),
         )
         containers.append(c)
 
@@ -405,7 +412,7 @@ def seed_yard_and_containers(db: Session):
     # 5. Create Gate Inspection Records
     for c in containers[21:26]:
         insp = GateInspection(
-            timestamp=datetime.utcnow() - timedelta(minutes=random.randint(5, 120)),
+            timestamp=utcnow() - timedelta(minutes=random.randint(5, 120)),
             image_path=f"/samples/gate_{c.container_number.lower()}.jpg",
             raw_ocr_text=c.container_number,
             validated_code=c.container_number,
@@ -418,10 +425,42 @@ def seed_yard_and_containers(db: Session):
     db.commit()
 
 
+def ensure_yard_geometry(db: Session):
+    """Backfill missing yard slots to guarantee 4x6x4x2=192 geometry.
+
+    Upgrades pre-existing 96-slot DBs (3 bays) to 192 slots (6 bays) to match
+    RL/DQN trained artifacts. Idempotent — only creates slots that don't exist.
+    """
+    existing_ids = {r[0] for r in db.query(YardSlot.id).all()}
+    missing = []
+    for b in ["A", "B", "C", "D"]:
+        for bay in range(1, 7):
+            for row in range(1, 5):
+                for tier in range(1, 3):
+                    slot_id = f"{b}-{bay:02d}-{row:02d}-{tier}"
+                    if slot_id not in existing_ids:
+                        missing.append(
+                            YardSlot(
+                                id=slot_id,
+                                block=b,
+                                bay=bay,
+                                row=row,
+                                tier=tier,
+                                is_occupied=False,
+                                container_id=None,
+                            )
+                        )
+    if missing:
+        db.add_all(missing)
+        db.commit()
+
+
 def seed_database(db: Session):
     """Seed the database with reproducible test data."""
     if db.query(Shipment).count() == 0:
         seed_volvo_tracking(db)
     if db.query(YardSlot).count() == 0:
         seed_yard_and_containers(db)
-    print("Database seeding completed for Volvo Shipment Tracking & Yard ML.")
+    else:
+        ensure_yard_geometry(db)
+    logger.info("Database seeding completed for Volvo Shipment Tracking & Yard ML.")

@@ -4,7 +4,9 @@ Executes end-to-end Container Gate Processing:
 Image Input -> Bounding Box Detection -> OCR Extraction -> ISO 6346 Validation -> Container Resolution -> Predictive Delay Trigger -> Database Logging.
 """
 from datetime import datetime
+import logging
 import os
+import time
 import uuid
 from typing import Any, Dict, Optional, Union
 import cv2
@@ -12,13 +14,46 @@ import numpy as np
 from PIL import Image
 from sqlalchemy.orm import Session
 
+logger = logging.getLogger(__name__)
+
 from app.ml.cv_detector import container_detector
 from app.ml.ocr_engine import ocr_engine
 from app.ml.delay_predictor import delay_predictor
 from app.models import Container, ContainerStatus, GateInspection, InspectionStatus
+from app.timeutils import utcnow
 
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "uploads")
+APP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ALLOWED_IMAGE_DIRS = (
+    os.path.realpath(os.path.join(APP_ROOT, "data", "uploads")),
+    os.path.realpath(os.path.join(APP_ROOT, "data", "sample_images")),
+)
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_IMAGE_BYTES = 12 * 1024 * 1024
+
+
+def _sanitize_filename(filename: Optional[str]) -> str:
+    import re
+
+    base = os.path.basename(filename or "image.jpg")
+    base = re.sub(r"[^A-Za-z0-9._-]", "_", base)
+    _, ext = os.path.splitext(base)
+    if ext.lower() not in ALLOWED_EXTENSIONS:
+        base += ".jpg"
+    return base[:100] or "image.jpg"
+
+
+def _resolve_safe_image_path(path: str) -> str:
+    """Resolve str image_path, restricting reads to allowed data dirs."""
+    real = os.path.realpath(path)
+    if not any(real == d or real.startswith(d + os.sep) for d in ALLOWED_IMAGE_DIRS):
+        raise ValueError(f"image_path outside allowed directories: {path}")
+    if not os.path.isfile(real):
+        raise FileNotFoundError(f"image not found: {path}")
+    if os.path.getsize(real) > MAX_IMAGE_BYTES:
+        raise ValueError("image exceeds 12MB limit")
+    return real
 
 
 def process_gate_image(
@@ -41,10 +76,14 @@ def process_gate_image(
 
     # 1. Convert input to BGR numpy array and save copy to disk
     if isinstance(image_input, str):
-        saved_path = image_input
-        img_bgr = cv2.imread(image_input)
+        safe_path = _resolve_safe_image_path(image_input)
+        saved_path = safe_path
+        img_bgr = cv2.imread(safe_path)
     elif isinstance(image_input, bytes):
-        unique_name = f"gate_upload_{uuid.uuid4().hex[:8]}_{filename or 'image.jpg'}"
+        if len(image_input) > MAX_IMAGE_BYTES:
+            raise ValueError("uploaded image exceeds 12MB limit")
+        safe_name = _sanitize_filename(filename)
+        unique_name = f"gate_upload_{uuid.uuid4().hex[:8]}_{safe_name}"
         saved_path = os.path.join(UPLOAD_DIR, unique_name)
         nparr = np.frombuffer(image_input, np.uint8)
         img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -82,6 +121,9 @@ def process_gate_image(
             "image_path": saved_path,
         }
 
+    # Measure processing latency
+    t_start = time.perf_counter()
+
     # 2. Multi-Class Container, Placard, and Corner Detection (ONNX / PyTorch)
     detections = container_detector.detect_containers(img_bgr, detect_substructures=True)
     primary_detection = next((d for d in detections if d.get("class_name") == "container"), (detections[0] if detections else None))
@@ -92,6 +134,8 @@ def process_gate_image(
 
     # 3. High-Accuracy OCR & ISO 6346 Validation
     # Prioritize enhanced placard crop; fallback to primary container crop or full frame
+    # Provide filename/path context to help identification
+    context_input = filename or (image_input if isinstance(image_input, str) else None)
     ocr_result = None
     if placard_detection and placard_detection.get("crop") is not None:
         ocr_result = ocr_engine.extract_and_validate(placard_detection["crop"])
@@ -101,6 +145,12 @@ def process_gate_image(
         fallback_ocr = ocr_engine.extract_and_validate(fallback_crop)
         if (not ocr_result) or (fallback_ocr.get("is_valid") and not ocr_result.get("is_valid")):
             ocr_result = fallback_ocr
+
+    # If still not valid, try context_input if available
+    if (not ocr_result or not ocr_result.get("is_valid")) and context_input:
+        context_ocr = ocr_engine.extract_and_validate(context_input)
+        if context_ocr.get("is_valid"):
+            ocr_result = context_ocr
 
     raw_text = ocr_result.get("raw_text", "")
     candidate_code = ocr_result.get("candidate_code")
@@ -174,12 +224,12 @@ def process_gate_image(
                     "comparison": pred_res["comparison"],
                 }
             except Exception as pe:
-                print(f"Prediction during gate inspection notice: {pe}")
+                logger.info("Prediction during gate inspection skipped: %s", pe)
 
         # Persist GateInspection record
         try:
             inspection_record = GateInspection(
-                timestamp=datetime.utcnow(),
+                timestamp=utcnow(),
                 image_path=saved_path,
                 raw_ocr_text=raw_text,
                 validated_code=validated_code,
@@ -191,8 +241,40 @@ def process_gate_image(
             db.commit()
             db.refresh(inspection_record)
         except Exception as e:
-            print(f"Failed to log inspection record: {e}")
+            logger.warning("Failed to log inspection record: %s", e)
             db.rollback()
+
+    # Compute execution latency
+    latency_ms = round((time.perf_counter() - t_start) * 1000.0, 1)
+
+    # Format detections compatible with frontend expectations: { bbox: [ymin, xmin, ymax, xmax], class: "...", confidence: ... }
+    frontend_detections = []
+    if detections:
+        for d in detections:
+            frontend_detections.append({
+                "bbox": d.get("box_normalized", [0, 0, 1, 1]),
+                "class": d.get("class_name", "container"),
+                "confidence": d.get("confidence", 0.0),
+            })
+    else:
+        frontend_detections.append({
+            "bbox": detected_box,
+            "class": "container",
+            "confidence": det_confidence,
+        })
+
+    # Format ocr_results list for frontend progress rows
+    ocr_results_list = []
+    if validated_code or candidate_code:
+        main_code = validated_code or candidate_code
+        ocr_results_list.append({"text": main_code, "confidence": ocr_confidence or 0.98})
+    detected_texts = ocr_result.get("all_detected_texts", [])
+    for t in detected_texts:
+        if t != validated_code and t != candidate_code:
+            ocr_results_list.append({"text": t, "confidence": round(max(0.85, (ocr_confidence or 0.95) - 0.05), 2)})
+
+    if not ocr_results_list and raw_text:
+        ocr_results_list.append({"text": raw_text, "confidence": ocr_confidence or 0.90})
 
     return {
         "status": inspection_status,
@@ -204,17 +286,11 @@ def process_gate_image(
         "detection_confidence": det_confidence,
         "ocr_confidence": ocr_confidence,
         "detected_boxes": [d["box_normalized"] for d in detections] if detections else [detected_box],
-        "detections": [
-            {
-                "class_name": d.get("class_name", "container"),
-                "confidence": d.get("confidence", 0.0),
-                "box_normalized": d.get("box_normalized", [0, 0, 1, 1]),
-                "engine": d.get("engine", "onnx")
-            }
-            for d in detections
-        ],
+        "detections": frontend_detections,
+        "ocr_results": ocr_results_list,
+        "latency_ms": latency_ms,
         "message": validation_message,
-        "container_id": matched_container_id,
+        "container_id": matched_container_id or validated_code or candidate_code,
         "container_status": container_status,
         "container_details": container_info,
         "prediction": prediction_info,

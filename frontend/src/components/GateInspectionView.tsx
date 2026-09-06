@@ -338,9 +338,9 @@ export function GateInspectionView({ onInspectionCompleted }: GateInspectionView
                 {activeResult.is_valid !== false ? "ISO 6346 checksum valid" : "ISO 6346 checksum invalid"}
               </b>
               <p className="v-meta" style={{ marginTop: 2 }}>
-                {activeResult.is_valid !== false
-                  ? "Check digit 2 matches computed remainder. Owner prefix MSK registered."
-                  : "Check digit mismatch — verify container number manually."}
+                {activeResult.message || (activeResult.is_valid !== false
+                  ? "Check digit matches computed remainder. ISO standard prefix verified."
+                  : "Check digit mismatch — verify container number manually.")}
               </p>
             </div>
           </div>

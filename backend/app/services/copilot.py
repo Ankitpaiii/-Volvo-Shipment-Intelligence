@@ -22,17 +22,43 @@ def _build_shipment_context(db: Session) -> str:
     critical = [s for s in shipments if s.part_criticality in ("JIT", "JIS")]
     lines.append(f"NETWORK SUMMARY: {total} shipments total, {len(at_risk)} at-risk, {len(critical)} JIT/JIS critical")
 
+    # Bulk-fetch milestone events once (1 query instead of 60)
+    shipment_ids = [s.shipment_id for s in shipments]
+    events_by_shipment: dict[str, list] = {sid: [] for sid in shipment_ids}
+    if shipment_ids:
+        rows = (
+            db.query(MilestoneEvent)
+            .filter(MilestoneEvent.shipment_id.in_(shipment_ids))
+            .order_by(MilestoneEvent.event_time.asc())
+            .all()
+        )
+        for e in rows:
+            events_by_shipment.setdefault(e.shipment_id, []).append(e)
+
     lines.append("\n--- SHIPMENTS ---")
     for s in shipments:
-        events = db.query(MilestoneEvent).filter(MilestoneEvent.shipment_id == s.shipment_id).all()
-        risk, health, flags, predicted, confidence = compute_risk_and_health(s, events)
+        # Use stored scores (computed by background worker) to avoid 60x recompute.
+        # Fall back to live recompute only if scores look stale/missing.
+        events = events_by_shipment.get(s.shipment_id, [])
+        risk, health, flags = s.delay_risk_score, s.health_score, s.flags or []
+        predicted, confidence = s.predicted_delivery, s.eta_confidence
+        if risk is None or predicted is None:
+            risk, health, flags, predicted, confidence = compute_risk_and_health(s, events)
         completed_milestones = [e.event_type for e in events if e.event_type != "GPS_PING"]
+        try:
+            eta_str = predicted.strftime('%Y-%m-%d %H:%M') if predicted else 'unknown'
+        except Exception:
+            eta_str = 'unknown'
+        try:
+            conf_pct = round((confidence or 0.85) * 100)
+        except Exception:
+            conf_pct = 85
         lines.append(
             f"PO={s.po_number} | lane={s.lane_name} | {s.origin_city}->{s.dest_city} | "
             f"status={s.status} | risk={risk}% | health={health}% | criticality={s.part_criticality} | "
             f"supplier={s.supplier_name} | carrier={s.carrier_name} | "
-            f"ETA={predicted.strftime('%Y-%m-%d %H:%M') if predicted else 'unknown'} | "
-            f"confidence={round(confidence*100)}% | flags={','.join(flags) if flags else 'none'} | "
+            f"ETA={eta_str} | "
+            f"confidence={conf_pct}% | flags={','.join(flags) if flags else 'none'} | "
             f"milestones_done={','.join(completed_milestones[-3:]) if completed_milestones else 'none'}"
         )
 

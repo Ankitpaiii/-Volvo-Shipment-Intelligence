@@ -101,32 +101,34 @@ export interface ExtendedKPIs extends KPIs {
   total_shipments: number;
 }
 
+// Mirrors backend/app/schemas.py: CarrierScorecard / LanePerformance.
+// Canonical fields are required; legacy aliases stay optional for compat.
 export interface CarrierScorecard {
   carrier_name: string;
-  total_shipments?: number;
-  shipment_count?: number;
-  at_risk_count?: number;
-  avg_risk_score?: number;
-  on_time_rate?: number;
-  otif_rate?: number;
-  compliance_rate?: number;
-  p1_exception_count?: number;
-  exception_rate?: number;
-  avg_transit_days_variance?: number;
+  total_shipments: number;
+  at_risk_count: number;
+  avg_risk_score: number;
+  on_time_rate: number;
+  otif_rate: number;
+  compliance_rate: number;
+  p1_exception_count: number;
+  exception_rate: number;
+  avg_transit_days_variance: number;
+  shipment_count?: number; // alias of total_shipments
 }
 
 export interface LanePerformance {
   lane_name: string;
-  origin_city?: string;
-  dest_city?: string;
-  total_shipments?: number;
-  avg_risk_score?: number;
-  avg_delay_risk_score?: number;
-  on_time_rate?: number;
-  otif_rate?: number;
-  avg_milestone_completeness?: number;
-  active_exceptions?: number;
-  dominant_carrier?: string;
+  origin_city: string;
+  dest_city: string;
+  total_shipments: number;
+  avg_risk_score: number;
+  avg_delay_risk_score: number;
+  on_time_rate: number;
+  otif_rate: number;
+  avg_milestone_completeness: number;
+  active_exceptions: number;
+  dominant_carrier: string;
 }
 
 export type SSEEvent =
@@ -438,6 +440,48 @@ export function subscribeToSSE(onEvent: (event: SSEEvent) => void): () => void {
 }
 
 
+function num(v: unknown, fallback = 0): number {
+  const n = typeof v === "string" ? parseFloat(v) : (v as number);
+  return Number.isFinite(n) ? (n as number) : fallback;
+}
+
+export function normalizeScorecard(raw: any): CarrierScorecard {
+  const total = num(raw.total_shipments ?? raw.shipment_count, 0);
+  const otif = num(raw.otif_rate ?? raw.on_time_rate, 0);
+  return {
+    carrier_name: String(raw.carrier_name ?? "Unknown"),
+    total_shipments: total,
+    at_risk_count: num(raw.at_risk_count, 0),
+    avg_risk_score: num(raw.avg_risk_score, 0),
+    on_time_rate: num(raw.on_time_rate ?? raw.otif_rate, otif),
+    otif_rate: otif,
+    compliance_rate: num(raw.compliance_rate, 0),
+    p1_exception_count: num(raw.p1_exception_count, 0),
+    exception_rate: num(raw.exception_rate, 0),
+    avg_transit_days_variance: num(raw.avg_transit_days_variance, 0),
+    shipment_count: num(raw.shipment_count ?? total, total),
+  };
+}
+
+export function normalizeLane(raw: any): LanePerformance {
+  const risk = num(raw.avg_risk_score ?? raw.avg_delay_risk_score, 0);
+  const otif = num(raw.otif_rate ?? raw.on_time_rate, 0);
+  return {
+    lane_name: String(raw.lane_name ?? "Unknown"),
+    origin_city: String(raw.origin_city ?? ""),
+    dest_city: String(raw.dest_city ?? ""),
+    total_shipments: num(raw.total_shipments, 0),
+    avg_risk_score: risk,
+    avg_delay_risk_score: num(raw.avg_delay_risk_score ?? risk, risk),
+    on_time_rate: num(raw.on_time_rate ?? raw.otif_rate, otif),
+    otif_rate: otif,
+    avg_milestone_completeness: num(raw.avg_milestone_completeness, 0),
+    active_exceptions: num(raw.active_exceptions, 0),
+    dominant_carrier: String(raw.dominant_carrier ?? "Volvo Logistics"),
+  };
+}
+
+
 // ──────────────────────────────────────────────
 // Volvo API Client Object
 // ──────────────────────────────────────────────
@@ -455,17 +499,21 @@ export const api = {
     }
     return fetchJson<ExtendedKPIs>("/api/v1/kpis/extended");
   },
-  getShipments: async (params?: { status?: string; lane?: string; search?: string; criticality?: string; sort?: string }) => {
+  getShipments: async (params?: { status?: string; carrier?: string; lane?: string; search?: string; criticality?: string; sort?: string; page?: number; limit?: number }) => {
     if (USE_MOCK) {
-      return { items: mockShipments, total: mockShipments.length };
+      return { items: mockShipments, total: mockShipments.length, page: 1, limit: mockShipments.length };
     }
     const q = new URLSearchParams();
     if (params?.status) q.set("status", params.status);
+    if (params?.carrier) q.set("carrier", params.carrier);
     if (params?.lane) q.set("lane", params.lane);
     if (params?.search) q.set("search", params.search);
     if (params?.criticality) q.set("criticality", params.criticality);
     if (params?.sort) q.set("sort", params.sort);
-    return fetchJson<{ items: Shipment[]; total: number }>(`/api/v1/shipments?${q}`);
+    if (params?.page) q.set("page", String(params.page));
+    if (params?.limit) q.set("limit", String(params.limit));
+    const qs = q.toString();
+    return fetchJson<{ items: Shipment[]; total: number; page: number; limit: number }>(`/api/v1/shipments${qs ? `?${qs}` : ""}`);
   },
   getShipment: async (id: string) => {
     if (USE_MOCK) {
@@ -491,10 +539,15 @@ export const api = {
   },
   copilotChat: async (question: string, sessionId = "default") => {
     try {
-      return await fetchJson<{ answer: string; sources: string[] }>("/api/v1/copilot/chat", {
-        method: "POST",
-        body: JSON.stringify({ question, session_id: sessionId }),
-      });
+      // Backend returns {answer, sources_used, session_id}; normalize to UI shape.
+      const raw = await fetchJson<{ answer: string; sources_used?: string[]; sources?: string[]; session_id?: string }>(
+        "/api/v1/copilot/chat",
+        {
+          method: "POST",
+          body: JSON.stringify({ question, session_id: sessionId }),
+        }
+      );
+      return { answer: raw.answer, sources: raw.sources_used ?? raw.sources ?? [] };
     } catch (e) {
       if (!USE_MOCK) throw e;
       console.warn("Backend copilot API failed, using mock fallback:", e);
@@ -505,12 +558,12 @@ export const api = {
     }
   },
   getCarrierScorecards: async () => {
-    if (USE_MOCK) return mockScorecards as CarrierScorecard[];
-    return fetchJson<CarrierScorecard[]>("/api/v1/reports/carrier-scorecards");
+    const raw = USE_MOCK ? (mockScorecards as any[]) : await fetchJson<any[]>("/api/v1/reports/carrier-scorecards");
+    return raw.map(normalizeScorecard);
   },
   getLanePerformance: async () => {
-    if (USE_MOCK) return mockLanes as LanePerformance[];
-    return fetchJson<LanePerformance[]>("/api/v1/reports/lane-performance");
+    const raw = USE_MOCK ? (mockLanes as any[]) : await fetchJson<any[]>("/api/v1/reports/lane-performance");
+    return raw.map(normalizeLane);
   },
 };
 
@@ -536,14 +589,10 @@ export async function fetchContainers(status?: string, priority?: string): Promi
 }
 
 export async function fetchShipments(status?: string): Promise<Shipment[]> {
-  const params = new URLSearchParams();
-  if (status) params.append("status", status);
-  params.append("limit", "200");
-  const url = `${API_BASE}/api/v1/shipments?${params.toString()}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch shipments: ${res.statusText}`);
-  const data = await res.json();
-  return Array.isArray(data) ? data : (data.items || []);
+  // Single source of truth: delegate to api.getShipments (handles mock + paginated shape).
+  const data = await api.getShipments(status ? { status, limit: 200 } : { limit: 200 });
+  if (Array.isArray(data)) return data as Shipment[];
+  return (data as { items?: Shipment[] }).items || [];
 }
 
 export async function fetchMLMetrics(): Promise<MLMetrics> {

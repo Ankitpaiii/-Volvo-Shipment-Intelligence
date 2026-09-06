@@ -358,7 +358,7 @@ export default function App() {
               <div className="v-page v-scroll">
                 <header>
                   <h1>Yard digital twin</h1>
-                  <p>96 slots, four blocks, three bays deep. Click a slot to stage an allocation.</p>
+                  <p>192 slots, four blocks, six bays deep. Click a slot to stage an allocation.</p>
                 </header>
                 <YardDigitalTwin yardState={yardState} onRefresh={loadYardData} containers={containers} />
               </div>

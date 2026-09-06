@@ -24,9 +24,9 @@
       "R2": 0.8879317659208644
     },
     "Random_Forest": {
-      "MAE": 17.276864091380006,
-      "RMSE": 23.913810579507334,
-      "R2": 0.9462838638970248
+      "MAE": 17.27784956275841,
+      "RMSE": 23.92847003232547,
+      "R2": 0.9462179864394737
     },
     "XGBoost": {
       "MAE": 15.209186852490463,
@@ -36,14 +36,14 @@
   },
   "feature_importance": {
     "random_forest": {
-      "remaining_distance": 0.03391354881398876,
-      "current_progress": 0.005633208647009626,
-      "current_speed": 0.06641558078340185,
-      "dwell_time": 0.8258382272938486,
-      "yard_congestion": 0.043961840471281134,
-      "historical_delay": 0.007815224175267537,
-      "priority_level": 0.009847534816722014,
-      "route_risk": 0.006574834998480354
+      "remaining_distance": 0.03390059456647741,
+      "current_progress": 0.005641068526497713,
+      "current_speed": 0.0664212405263529,
+      "dwell_time": 0.8258423979018195,
+      "yard_congestion": 0.04396623083940095,
+      "historical_delay": 0.007802580243049932,
+      "priority_level": 0.009848874147388569,
+      "route_risk": 0.006577013249013019
     },
     "xgboost": {
       "remaining_distance": 0.033078379929065704,

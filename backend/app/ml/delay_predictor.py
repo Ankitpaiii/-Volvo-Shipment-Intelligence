@@ -6,12 +6,17 @@ Supports direct operational feature inference and container/shipment entity infe
 """
 from datetime import datetime, timedelta
 import json
+import logging
 import os
 from typing import Any, Dict, List, Optional
 import joblib
 import numpy as np
 import pandas as pd
 from sqlalchemy.orm import Session
+
+from app.timeutils import utcnow
+
+logger = logging.getLogger(__name__)
 
 from app.models import Container, ContainerStatus, MLPredictionLog, Shipment, ShipmentStatus
 
@@ -62,7 +67,7 @@ class DelayPredictor:
                 with open(metrics_path, "r") as f:
                     self.metrics = json.load(f)
         except Exception as e:
-            print(f"Warning: Error loading ML artifacts: {e}")
+            logger.warning("Error loading ML artifacts: %s", e)
 
     def get_metrics(self) -> Dict[str, Any]:
         """Return holdout test set evaluation benchmarks."""
@@ -204,7 +209,7 @@ class DelayPredictor:
         )
 
         pred_delay = pred_res["primary_predicted_delay_minutes"]
-        now = datetime.utcnow()
+        now = utcnow()
 
         # ETA calculation: nominal transit time = remaining_dist / speed + dwell + predicted_delay
         nominal_transit_hours = (remaining_dist / speed) + dwell
@@ -229,7 +234,7 @@ class DelayPredictor:
             db.commit()
             db.refresh(shipment)
         except Exception as e:
-            print(f"Failed to log prediction: {e}")
+            logger.warning("Failed to log prediction: %s", e)
             db.rollback()
 
         return {

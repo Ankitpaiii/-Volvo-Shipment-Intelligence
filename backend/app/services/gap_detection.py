@@ -5,13 +5,17 @@ from sqlalchemy.orm import Session
 
 from app.constants import CRITICALITY_WEIGHT, MILESTONE_SLA_HOURS, MILESTONE_TEMPLATE
 from app.models import ExceptionRecord, ExceptionSeverity, ExceptionStatus, MilestoneEvent, Shipment, ShipmentStatus
+from app.timeutils import ensure_aware, utcnow
 
 
 def _elapsed_fraction(shipment: Shipment, now: datetime) -> float:
-    total = (shipment.planned_delivery - shipment.planned_pickup).total_seconds()
+    now = ensure_aware(now)
+    pickup = ensure_aware(shipment.planned_pickup)
+    delivery = ensure_aware(shipment.planned_delivery)
+    total = (delivery - pickup).total_seconds()
     if total <= 0:
         return 1.0
-    elapsed = (now - shipment.planned_pickup).total_seconds()
+    elapsed = (now - pickup).total_seconds()
     return max(0.0, min(1.0, elapsed / total))
 
 
@@ -25,10 +29,11 @@ def _milestone_completeness(events: list[MilestoneEvent]) -> float:
 
 def _gps_stale_minutes(events: list[MilestoneEvent], now: datetime) -> float:
     """Returns how many minutes since the last GPS ping, or 0 if recent."""
+    now = ensure_aware(now)
     last_gps: Optional[datetime] = None
-    for e in sorted(events, key=lambda x: x.event_time, reverse=True):
+    for e in sorted(events, key=lambda x: ensure_aware(x.event_time), reverse=True):
         if e.event_type == "GPS_PING":
-            last_gps = e.event_time
+            last_gps = ensure_aware(e.event_time)
             break
     if not last_gps:
         return 0.0
@@ -37,11 +42,11 @@ def _gps_stale_minutes(events: list[MilestoneEvent], now: datetime) -> float:
 
 def _count_consecutive_gps_gaps(events: list[MilestoneEvent]) -> int:
     """Count consecutive GPS_PING events that have gaps > 30 min (sign of device issues)."""
-    gps_events = sorted([e for e in events if e.event_type == "GPS_PING"], key=lambda x: x.event_time)
+    gps_events = sorted([e for e in events if e.event_type == "GPS_PING"], key=lambda x: ensure_aware(x.event_time))
     gaps = 0
     consecutive = 0
     for i in range(1, len(gps_events)):
-        diff = (gps_events[i].event_time - gps_events[i - 1].event_time).total_seconds() / 60
+        diff = (ensure_aware(gps_events[i].event_time) - ensure_aware(gps_events[i - 1].event_time)).total_seconds() / 60
         if diff > 30:
             consecutive += 1
             gaps = max(gaps, consecutive)
@@ -52,12 +57,14 @@ def _count_consecutive_gps_gaps(events: list[MilestoneEvent]) -> int:
 
 def _sla_breached_milestones(shipment: Shipment, events: list[MilestoneEvent], now: datetime) -> list[str]:
     """Return list of milestone types that have breached their SLA window."""
+    now = ensure_aware(now)
+    pickup = ensure_aware(shipment.planned_pickup)
     completed = {e.event_type for e in events}
     breached = []
     for milestone, sla_hours in MILESTONE_SLA_HOURS.items():
         if milestone not in completed:
             # Only check if we're past the expected time for this milestone
-            expected_after = shipment.planned_pickup + timedelta(hours=sla_hours)
+            expected_after = pickup + timedelta(hours=sla_hours)
             if now > expected_after and shipment.status not in (
                 ShipmentStatus.DELIVERED.value,
                 ShipmentStatus.CLOSED.value,
@@ -72,9 +79,9 @@ def compute_dwell_time_hours(shipment: Shipment, events: list[MilestoneEvent]) -
     unload_time: Optional[datetime] = None
     for e in events:
         if e.event_type == "GATE_ARRIVAL" and gate_time is None:
-            gate_time = e.event_time
+            gate_time = ensure_aware(e.event_time)
         if e.event_type == "UNLOAD_COMPLETE" and unload_time is None:
-            unload_time = e.event_time
+            unload_time = ensure_aware(e.event_time)
     if gate_time and unload_time and unload_time > gate_time:
         return (unload_time - gate_time).total_seconds() / 3600
     return None
@@ -85,7 +92,7 @@ def compute_risk_and_health(
     events: list[MilestoneEvent],
     now: Optional[datetime] = None,
 ) -> tuple[int, int, list[str], Optional[datetime], float]:
-    now = now or datetime.utcnow()
+    now = ensure_aware(now) or utcnow()
     flags: list[str] = []
 
     elapsed_frac = _elapsed_fraction(shipment, now)
@@ -118,11 +125,13 @@ def compute_risk_and_health(
         flags.append("gps_device_issue")
 
     # === Past Planned Delivery ===
-    if now > shipment.planned_delivery and shipment.status not in (
+    planned_delivery = ensure_aware(shipment.planned_delivery)
+    planned_pickup = ensure_aware(shipment.planned_pickup)
+    if now > planned_delivery and shipment.status not in (
         ShipmentStatus.DELIVERED.value,
         ShipmentStatus.CLOSED.value,
     ):
-        overdue_hours = (now - shipment.planned_delivery).total_seconds() / 3600
+        overdue_hours = (now - planned_delivery).total_seconds() / 3600
         risk += min(40, int(20 + overdue_hours * 2))
         flags.append("past_planned_delivery")
 
@@ -135,7 +144,7 @@ def compute_risk_and_health(
     # === Carrier Compliance Penalty (no pickup confirmation) ===
     event_types = {e.event_type for e in events}
     if "BOOKING_CONFIRMED" in event_types and "PICKUP_COMPLETED" not in event_types:
-        pickup_sla_deadline = shipment.planned_pickup + timedelta(hours=MILESTONE_SLA_HOURS.get("PICKUP_COMPLETED", 2))
+        pickup_sla_deadline = planned_pickup + timedelta(hours=MILESTONE_SLA_HOURS.get("PICKUP_COMPLETED", 2))
         if now > pickup_sla_deadline:
             risk += int(15 * crit_weight)
             flags.append("carrier_non_compliant")
@@ -145,7 +154,7 @@ def compute_risk_and_health(
 
     # === Predicted ETA ===
     remaining = max(0.0, 1.0 - elapsed_frac)
-    transit_hours = (shipment.planned_delivery - shipment.planned_pickup).total_seconds() / 3600
+    transit_hours = (planned_delivery - planned_pickup).total_seconds() / 3600
     delay_factor = 1.0 + (risk / 150.0)  # more moderate delay factor
     predicted = now + timedelta(hours=transit_hours * remaining * delay_factor)
     confidence = max(0.35, 0.92 - (risk / 180.0))
@@ -162,15 +171,26 @@ def update_shipment_scores(db: Session, shipment: Shipment) -> None:
     shipment.predicted_delivery = predicted
     shipment.eta_confidence = confidence
 
+    now_status = utcnow()
+    planned_delivery_aware = ensure_aware(shipment.planned_delivery)
     if shipment.actual_delivery:
         shipment.status = ShipmentStatus.DELIVERED.value
+    elif shipment.status == ShipmentStatus.CLOSED.value:
+        pass
     elif not shipment.actual_pickup and not shipment.current_lat:
         shipment.status = ShipmentStatus.PLANNED.value
-    elif risk >= 70:
+    elif (
+        planned_delivery_aware
+        and now_status > planned_delivery_aware
+        and shipment.status
+        not in (ShipmentStatus.DELIVERED.value, ShipmentStatus.CLOSED.value)
+    ):
+        shipment.status = ShipmentStatus.DELAYED.value
+    elif risk >= 40:
         shipment.status = ShipmentStatus.AT_RISK.value
-    elif risk >= 40 and shipment.status != ShipmentStatus.DELAYED.value:
-        shipment.status = ShipmentStatus.IN_TRANSIT.value
-    elif risk < 40 and shipment.status != ShipmentStatus.DELAYED.value:
+    elif shipment.status == ShipmentStatus.AT_GATE.value:
+        pass
+    else:
         shipment.status = ShipmentStatus.IN_TRANSIT.value
 
 
@@ -218,7 +238,7 @@ def _raise_exception(
 
 
 def detect_gaps(db: Session) -> list[ExceptionRecord]:
-    now = datetime.utcnow()
+    now = utcnow()
     created: list[ExceptionRecord] = []
     shipments = db.query(Shipment).filter(
         Shipment.status.notin_([ShipmentStatus.CLOSED.value, ShipmentStatus.DELIVERED.value])
@@ -228,9 +248,10 @@ def detect_gaps(db: Session) -> list[ExceptionRecord]:
         events = db.query(MilestoneEvent).filter(MilestoneEvent.shipment_id == shipment.shipment_id).all()
         event_types = {e.event_type for e in events}
         update_shipment_scores(db, shipment)
+        planned_pickup = ensure_aware(shipment.planned_pickup)
 
         # === MISSING ASN ===
-        if "ASN_CREATED" not in event_types and now > shipment.planned_pickup - timedelta(hours=4):
+        if "ASN_CREATED" not in event_types and now > planned_pickup - timedelta(hours=4):
             severity = ExceptionSeverity.P1.value if shipment.part_criticality in ("JIT", "JIS") else ExceptionSeverity.P2.value
             rec = _raise_exception(
                 db, shipment,
@@ -243,7 +264,7 @@ def detect_gaps(db: Session) -> list[ExceptionRecord]:
                 created.append(rec)
 
         # === MISSING PICKUP ===
-        if "PICKUP_COMPLETED" not in event_types and now > shipment.planned_pickup + timedelta(hours=MILESTONE_SLA_HOURS["PICKUP_COMPLETED"]):
+        if "PICKUP_COMPLETED" not in event_types and now > planned_pickup + timedelta(hours=MILESTONE_SLA_HOURS["PICKUP_COMPLETED"]):
             severity = ExceptionSeverity.P1.value if shipment.part_criticality in ("JIT", "JIS") else ExceptionSeverity.P2.value
             rec = _raise_exception(
                 db, shipment,

@@ -42,11 +42,13 @@ def evaluate_cv_ocr_pipeline() -> Dict[str, Any]:
         if has_detection:
             successful_detections += 1
 
-        # Use primary detected crop
+        # Use primary detected crop or full image
         crop = detections[0]["crop"] if has_detection else cv2.imread(filepath)
 
         # 2. OCR & ISO 6346 Validation
-        ocr_res = ocr_engine.extract_and_validate(crop)
+        ocr_res = ocr_engine.extract_and_validate(filepath)
+        if not ocr_res.get("candidate_code") and has_detection:
+            ocr_res = ocr_engine.extract_and_validate(crop)
 
         t1 = time.perf_counter()
         latency_ms = (t1 - t0) * 1000.0

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -14,17 +14,17 @@ class ShipmentReference(BaseModel):
 
 
 class ShipmentCreate(BaseModel):
-    po_number: str
-    supplier_name: str
-    carrier_name: str
-    lane_name: str
-    origin_city: str
-    dest_city: str
-    origin_lat: float
-    origin_lng: float
-    dest_lat: float
-    dest_lng: float
-    part_criticality: str = "STANDARD"
+    po_number: str = Field(..., min_length=1, max_length=64)
+    supplier_name: str = Field(..., min_length=1, max_length=128)
+    carrier_name: str = Field(..., min_length=1, max_length=128)
+    lane_name: str = Field(..., min_length=1, max_length=128)
+    origin_city: str = Field(..., min_length=1, max_length=64)
+    dest_city: str = Field(..., min_length=1, max_length=64)
+    origin_lat: float = Field(..., ge=-90.0, le=90.0)
+    origin_lng: float = Field(..., ge=-180.0, le=180.0)
+    dest_lat: float = Field(..., ge=-90.0, le=90.0)
+    dest_lng: float = Field(..., ge=-180.0, le=180.0)
+    part_criticality: Literal["JIT", "JIS", "STANDARD"] = "STANDARD"
     planned_pickup: datetime
     planned_delivery: datetime
     references: dict[str, str] = Field(default_factory=dict)
@@ -32,10 +32,10 @@ class ShipmentCreate(BaseModel):
 
 
 class ShipmentUpdate(BaseModel):
-    status: Optional[str] = None
-    carrier_name: Optional[str] = None
-    delay_risk_score: Optional[int] = None
-    health_score: Optional[int] = None
+    status: Optional[Literal["PLANNED", "IN_TRANSIT", "AT_RISK", "AT_GATE", "DELAYED", "DELIVERED", "CLOSED"]] = None
+    carrier_name: Optional[str] = Field(None, min_length=1, max_length=128)
+    delay_risk_score: Optional[int] = Field(None, ge=0, le=100)
+    health_score: Optional[int] = Field(None, ge=0, le=100)
 
 
 class ShipmentSummary(BaseModel):
@@ -87,8 +87,8 @@ class ShipmentDetail(ShipmentSummary):
 
 
 class EventCreate(BaseModel):
-    event_type: str
-    source: str
+    event_type: str = Field(..., min_length=1, max_length=64)
+    source: str = Field(..., min_length=1, max_length=64)
     event_time: Optional[datetime] = None
     payload: dict[str, Any] = Field(default_factory=dict)
 
@@ -106,8 +106,12 @@ class EventResponse(BaseModel):
 
 
 class ExceptionAction(BaseModel):
-    action: str = Field(..., description="re_route | expedite | change_carrier | notify_supplier | ignore")
-    reason: Optional[str] = None
+    action: Literal["acknowledge", "resolve", "approve_recommendation"] = Field(
+        ..., description="acknowledge | resolve | approve_recommendation"
+    )
+    notes: Optional[str] = Field(None, max_length=2000)
+    # Kept for backwards-compat with older clients sending `reason`.
+    reason: Optional[str] = Field(None, max_length=2000)
 
 
 class ExceptionResponse(BaseModel):
@@ -181,6 +185,18 @@ class PaginatedShipments(BaseModel):
     limit: int
 
 
+class AuditLogResponse(BaseModel):
+    id: str
+    timestamp: datetime
+    actor: str
+    action: str
+    entity_type: str
+    entity_id: str
+    details: Dict[str, Any] = Field(default_factory=dict)
+
+    model_config = {"from_attributes": True}
+
+
 class ETAResponse(BaseModel):
     shipment_id: str
     planned_delivery: datetime
@@ -192,8 +208,8 @@ class ETAResponse(BaseModel):
 
 
 class CopilotRequest(BaseModel):
-    question: str
-    session_id: Optional[str] = None
+    question: str = Field(..., min_length=1, max_length=2000)
+    session_id: Optional[str] = Field(None, max_length=128)
 
 
 class CopilotResponse(BaseModel):
@@ -267,9 +283,9 @@ class YardStateResponse(BaseModel):
 
 
 class SlotAllocationRequest(BaseModel):
-    container_id: str
-    strategy: str = "intelligent"  # "first_fit", "nearest", "intelligent", "rl", "compare"
-    target_slot_id: Optional[str] = None  # Optional specific slot override
+    container_id: str = Field(..., min_length=1, max_length=36)
+    strategy: Literal["first_fit", "nearest", "intelligent", "rl", "dqn", "compare"] = "intelligent"
+    target_slot_id: Optional[str] = Field(None, max_length=36)  # Optional specific slot override
 
 
 class CostBreakdown(BaseModel):
@@ -340,9 +356,9 @@ class DelayPredictionRequest(BaseModel):
     dwell_time: Optional[float] = Field(None, ge=0.0, description="Dwell / checkpoint waiting hours")
     yard_congestion: Optional[float] = Field(None, ge=0.0, le=1.0, description="Yard congestion ratio (0.0 - 1.0)")
     historical_delay: Optional[float] = Field(None, ge=0.0, description="Historical average delay in mins")
-    priority: Optional[str] = Field("STANDARD", description="STANDARD, HIGH, or URGENT")
-    route_risk: Optional[float] = Field(1.0, description="Corridor risk multiplier")
-    model_name: str = Field("xgboost", description="baseline_linear, random_forest, or xgboost")
+    priority: Optional[Literal["STANDARD", "HIGH", "URGENT"]] = Field("STANDARD", description="STANDARD, HIGH, or URGENT")
+    route_risk: Optional[float] = Field(1.0, ge=0.1, le=5.0, description="Corridor risk multiplier")
+    model_name: Literal["baseline_linear", "random_forest", "xgboost"] = Field("xgboost", description="baseline_linear, random_forest, or xgboost")
 
 
 class DelayPredictionResponse(BaseModel):
@@ -389,6 +405,19 @@ class GatePredictionDetail(BaseModel):
     comparison: Dict[str, float]
 
 
+class DetectionItem(BaseModel):
+    bbox: List[float]
+    class_name: str = Field(alias="class")
+    confidence: float
+
+    model_config = {"populate_by_name": True}
+
+
+class OCRResultItem(BaseModel):
+    text: str
+    confidence: float
+
+
 class GateInspectionResponse(BaseModel):
     status: str
     container_number: Optional[str] = None
@@ -406,6 +435,9 @@ class GateInspectionResponse(BaseModel):
     prediction: Optional[GatePredictionDetail] = None
     allocation_recommendation: Optional[AllocationComparisonResponse] = None
     image_path: Optional[str] = None
+    detections: Optional[List[Dict[str, Any]]] = None
+    ocr_results: Optional[List[Dict[str, Any]]] = None
+    latency_ms: Optional[float] = None
 
 
 class CVOCRMetricsResponse(BaseModel):
